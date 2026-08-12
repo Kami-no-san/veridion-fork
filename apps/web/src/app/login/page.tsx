@@ -6,6 +6,8 @@ import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { toast } from 'sonner';
 
+import { apiFetch, storeAccessToken } from '@/lib/api-client';
+
 export default function LoginPage() {
   const router = useRouter();
   const [showPassword, setShowPassword] = useState(false);
@@ -16,14 +18,22 @@ export default function LoginPage() {
     setLoading(true);
 
     const formData = new FormData(e.currentTarget);
-    const _email = formData.get('email') as string;
-    const _password = formData.get('password') as string;
+    const email = formData.get('email') as string;
+    const password = formData.get('password') as string;
 
-    // TODO: Replace with actual API call
-    await new Promise((r) => setTimeout(r, 800));
-    toast.success('Welcome back!');
-    router.push('/dashboard');
-    setLoading(false);
+    try {
+      const response = await apiFetch<{ accessToken: string }>('/auth/login', {
+        method: 'POST',
+        body: JSON.stringify({ email, password }),
+      });
+      storeAccessToken(response.accessToken);
+      toast.success('Welcome back!');
+      router.push('/dashboard');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Unable to sign in');
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (

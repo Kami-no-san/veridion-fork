@@ -1,128 +1,234 @@
 'use client';
 
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   AlertTriangle,
   ArrowLeft,
   CheckCircle2,
   Clock,
   ExternalLink,
-  FileCode,
+  FileCode2,
   Github,
+  Pencil,
   Play,
-  Plus,
   Shield,
+  Trash2,
+  X,
 } from 'lucide-react';
 import Link from 'next/link';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
+import { useState } from 'react';
+import { toast } from 'sonner';
 
-const project = {
-  id: '1',
-  name: 'DeFi Protocol v2',
-  description:
-    'A decentralized exchange protocol with liquidity pools, staking, and yield farming capabilities.',
-  chain: 'Ethereum',
-  language: 'Solidity',
-  repoUrl: 'https://github.com/defi/protocol-v2',
-  contracts: 12,
-  audits: 5,
-  lastAudit: '2024-06-15',
-  securityScore: 82,
-  createdAt: '2024-02-10',
-};
+import { ProjectForm } from '@/components/projects/project-form';
+import { deleteProject, fetchProject, type ProjectDetails, updateProject } from '@/lib/api-client';
 
-const contracts = [
-  { name: 'LiquidityPool.sol', lines: 342, hash: '0xabc...123', lastModified: '2024-06-14' },
-  { name: 'StakingRewards.sol', lines: 218, hash: '0xdef...456', lastModified: '2024-06-12' },
-  { name: 'YieldFarm.sol', lines: 456, hash: '0x789...abc', lastModified: '2024-06-10' },
-  { name: 'Governance.sol', lines: 189, hash: '0xfed...cba', lastModified: '2024-06-08' },
-];
-
-const audits = [
-  { id: 'a1', status: 'COMPLETED', score: 82, findings: 14, date: '2024-06-15' },
-  { id: 'a2', status: 'VERIFIED', score: 93, findings: 3, date: '2024-06-01' },
-  { id: 'a3', status: 'COMPLETED', score: 78, findings: 21, date: '2024-05-15' },
-];
-
-const statusIcon: Record<string, React.ElementType> = {
-  COMPLETED: CheckCircle2,
-  SCANNING: Clock,
-  VERIFIED: Shield,
-  FAILED: AlertTriangle,
-  PENDING: Clock,
-};
-
-const statusColor: Record<string, string> = {
-  COMPLETED: 'text-emerald-500',
-  SCANNING: 'text-blue-500',
-  VERIFIED: 'text-violet-500',
-  FAILED: 'text-red-500',
-  PENDING: 'text-amber-500',
+const statusStyles: Record<string, { icon: typeof CheckCircle2; color: string }> = {
+  COMPLETED: { icon: CheckCircle2, color: 'text-emerald-500' },
+  VERIFIED: { icon: Shield, color: 'text-violet-500' },
+  SCANNING: { icon: Clock, color: 'text-blue-500' },
+  PENDING: { icon: Clock, color: 'text-amber-500' },
+  FAILED: { icon: AlertTriangle, color: 'text-red-500' },
 };
 
 export default function ProjectDetailPage() {
-  const params = useParams();
-  const projectId = params.id as string;
+  const params = useParams<{ id: string }>();
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const queryClient = useQueryClient();
+  const projectId = params.id;
+  const [isEditing, setIsEditing] = useState(searchParams.get('edit') === 'true');
+  const [formError, setFormError] = useState<string | null>(null);
+  const projectQuery = useQuery({
+    queryKey: ['project', projectId],
+    queryFn: () => fetchProject(projectId),
+    enabled: Boolean(projectId),
+  });
+  const updateMutation = useMutation({
+    mutationFn: (input: { name?: string; description?: string; repoUrl?: string }) =>
+      updateProject(projectId, input),
+    onSuccess: () => {
+      toast.success('Project updated');
+      setIsEditing(false);
+      void queryClient.invalidateQueries({ queryKey: ['project', projectId] });
+      void queryClient.invalidateQueries({ queryKey: ['projects'] });
+    },
+    onError: (error: Error) => setFormError(error.message || 'Failed to update project'),
+  });
+  const deleteMutation = useMutation({
+    mutationFn: () => deleteProject(projectId),
+    onSuccess: () => {
+      toast.success('Project deleted');
+      router.push('/dashboard/projects');
+    },
+    onError: (error: Error) => toast.error(error.message || 'Failed to delete project'),
+  });
+
+  function handleDelete() {
+    if (
+      projectQuery.data &&
+      window.confirm(`Delete "${projectQuery.data.name}"? This cannot be undone.`)
+    ) {
+      deleteMutation.mutate();
+    }
+  }
+
+  if (projectQuery.isLoading) {
+    return <div className="bg-card h-96 animate-pulse rounded-xl border" />;
+  }
+
+  if (projectQuery.isError || !projectQuery.data) {
+    return (
+      <div className="bg-card flex flex-col items-center justify-center rounded-xl border px-6 py-20 text-center">
+        <AlertTriangle className="text-destructive h-10 w-10" />
+        <h1 className="mt-4 text-lg font-semibold">Project unavailable</h1>
+        <p className="text-muted-foreground mt-1 text-sm">
+          We could not find this project or load it from the API.
+        </p>
+        <Link
+          href="/dashboard/projects"
+          className="text-primary mt-4 text-sm font-medium hover:underline"
+        >
+          Back to projects
+        </Link>
+      </div>
+    );
+  }
+
+  const project: ProjectDetails = projectQuery.data;
+  const scoredAudits = project.audits.filter((audit) => audit.securityScore !== null);
+  const averageScore = scoredAudits.length
+    ? Math.round(
+        scoredAudits.reduce((sum, audit) => sum + (audit.securityScore ?? 0), 0) /
+          scoredAudits.length,
+      )
+    : null;
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-4">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
         <Link
           href="/dashboard/projects"
-          className="text-muted-foreground hover:bg-muted hover:text-foreground rounded-lg p-2 transition-colors"
+          className="text-muted-foreground hover:bg-muted hover:text-foreground self-start rounded-lg p-2 transition-colors"
+          aria-label="Back to projects"
         >
           <ArrowLeft className="h-5 w-5" />
         </Link>
         <div className="flex-1">
           <div className="flex items-center gap-3">
-            <div className="bg-primary/10 text-primary flex h-12 w-12 items-center justify-center rounded-xl text-xl font-bold">
-              {project.name.charAt(0)}
+            <div className="bg-primary/10 text-primary flex h-12 w-12 shrink-0 items-center justify-center rounded-xl text-xl font-bold">
+              {project.name.charAt(0).toUpperCase()}
             </div>
-            <div>
-              <h1 className="text-3xl font-bold tracking-tight">{project.name}</h1>
-              <p className="text-muted-foreground mt-0.5">
-                {project.chain} · {project.language} · {project.contracts} contracts
+            <div className="min-w-0">
+              <h1 className="truncate text-3xl font-bold tracking-tight">{project.name}</h1>
+              <p className="text-muted-foreground mt-0.5 text-sm">
+                {project.chain} · {project.language}
               </p>
             </div>
           </div>
         </div>
-        <div className="flex gap-2">
-          <Link
-            href={`/dashboard/audits?projectId=${projectId}`}
-            className="bg-primary text-primary-foreground hover:bg-primary/90 inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors"
+        <div className="flex flex-wrap gap-2 sm:justify-end">
+          <button
+            type="button"
+            onClick={() => {
+              setFormError(null);
+              setIsEditing((editing) => !editing);
+            }}
+            className="hover:bg-muted inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium transition-colors"
           >
-            <Play className="h-4 w-4" /> New Audit
+            {isEditing ? <X className="h-4 w-4" /> : <Pencil className="h-4 w-4" />}
+            {isEditing ? 'Close' : 'Edit'}
+          </button>
+          <button
+            type="button"
+            onClick={handleDelete}
+            disabled={deleteMutation.isPending}
+            className="text-destructive hover:bg-destructive/10 inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium transition-colors disabled:opacity-50"
+          >
+            <Trash2 className="h-4 w-4" /> Delete
+          </button>
+          <Link
+            href={`/dashboard/audits?projectId=${project.id}`}
+            className="bg-primary text-primary-foreground hover:bg-primary/90 inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors"
+          >
+            <Play className="h-4 w-4" /> New audit
           </Link>
         </div>
       </div>
 
-      {project.description && (
-        <div className="bg-card rounded-xl border p-6 shadow-sm">
-          <p className="text-sm leading-relaxed">{project.description}</p>
-          {project.repoUrl && (
-            <a
-              href={project.repoUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-primary mt-3 inline-flex items-center gap-1.5 text-sm hover:underline"
-            >
-              <Github className="h-4 w-4" />
-              {project.repoUrl.replace('https://github.com/', '')}
-              <ExternalLink className="h-3 w-3" />
-            </a>
-          )}
+      {isEditing && (
+        <div className="bg-card rounded-xl border p-6 shadow-sm sm:p-8">
+          <div className="mb-5 flex items-center gap-2 border-b pb-4">
+            <Pencil className="text-primary h-4 w-4" />
+            <h2 className="font-semibold">Edit project</h2>
+          </div>
+          <ProjectForm
+            mode="edit"
+            initialValues={{
+              name: project.name,
+              description: project.description ?? undefined,
+              repoUrl: project.repoUrl ?? undefined,
+              chain: project.chain,
+              language: project.language,
+            }}
+            isSubmitting={updateMutation.isPending}
+            serverError={formError}
+            onSubmit={(values) => {
+              setFormError(null);
+              updateMutation.mutate({
+                name: values.name,
+                description: values.description || undefined,
+                repoUrl: values.repoUrl || undefined,
+              });
+            }}
+            onCancel={() => setIsEditing(false)}
+          />
         </div>
       )}
 
-      <div className="grid gap-4 md:grid-cols-4">
+      <div className="bg-card rounded-xl border p-6 shadow-sm">
+        {project.description && <p className="leading-relaxed">{project.description}</p>}
+        {project.repoUrl ? (
+          <a
+            href={project.repoUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-primary mt-3 inline-flex items-center gap-1.5 text-sm hover:underline"
+          >
+            <Github className="h-4 w-4" /> {project.repoUrl.replace('https://github.com/', '')}
+            <ExternalLink className="h-3 w-3" />
+          </a>
+        ) : (
+          <p className="text-muted-foreground text-sm">No repository linked.</p>
+        )}
+      </div>
+
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {[
           {
-            label: 'Security Score',
-            value: `${project.securityScore}/100`,
+            label: 'Security score',
+            value: averageScore === null ? '—' : `${averageScore}/100`,
             color: 'text-emerald-500',
           },
-          { label: 'Contracts', value: project.contracts, color: 'text-blue-500' },
-          { label: 'Audits', value: project.audits, color: 'text-violet-500' },
-          { label: 'Created', value: project.createdAt, color: 'text-muted-foreground' },
+          {
+            label: 'Contracts',
+            value: project._count?.contracts ?? project.contractCount,
+            color: 'text-blue-500',
+          },
+          {
+            label: 'Audits',
+            value: project._count?.audits ?? project.audits.length,
+            color: 'text-violet-500',
+          },
+          {
+            label: 'Created',
+            value: new Intl.DateTimeFormat('en-US', {
+              month: 'short',
+              day: 'numeric',
+              year: 'numeric',
+            }).format(new Date(project.createdAt)),
+            color: 'text-muted-foreground',
+          },
         ].map((stat) => (
           <div key={stat.label} className="bg-card rounded-xl border p-4 shadow-sm">
             <p className="text-muted-foreground text-xs font-medium">{stat.label}</p>
@@ -131,111 +237,94 @@ export default function ProjectDetailPage() {
         ))}
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-3">
-        <div className="space-y-6 lg:col-span-2">
-          <div className="bg-card rounded-xl border shadow-sm">
-            <div className="flex items-center justify-between border-b px-6 py-4">
+      <div className="grid gap-6 lg:grid-cols-2">
+        <section className="bg-card rounded-xl border shadow-sm">
+          <div className="flex items-center justify-between border-b px-6 py-4">
+            <div>
               <h2 className="font-semibold">Contracts</h2>
-              <button className="text-primary inline-flex items-center gap-1.5 text-sm hover:underline">
-                <Plus className="h-4 w-4" /> Add Contract
-              </button>
+              <p className="text-muted-foreground mt-0.5 text-xs">
+                Source files linked to this project
+              </p>
             </div>
+          </div>
+          {project.contracts.length ? (
             <div className="divide-y">
-              {contracts.map((contract) => (
+              {project.contracts.map((contract) => (
                 <div
-                  key={contract.name}
-                  className="hover:bg-muted/50 flex items-center justify-between px-6 py-3 transition-colors"
+                  key={contract.id}
+                  className="flex items-center justify-between gap-3 px-6 py-3"
                 >
-                  <div className="flex items-center gap-3">
-                    <FileCode className="text-muted-foreground h-4 w-4" />
-                    <div>
-                      <p className="text-sm font-medium">{contract.name}</p>
-                      <p className="text-muted-foreground text-xs">
-                        {contract.lines} lines · {contract.hash}
+                  <div className="flex min-w-0 items-center gap-3">
+                    <FileCode2 className="text-muted-foreground h-4 w-4 shrink-0" />
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-medium">{contract.name}</p>
+                      <p className="text-muted-foreground truncate text-xs">
+                        {contract.filePath} · {contract.lineCount} lines
                       </p>
                     </div>
                   </div>
-                  <span className="text-muted-foreground text-xs">{contract.lastModified}</span>
+                  <code className="text-muted-foreground hidden shrink-0 text-xs sm:block">
+                    {contract.hash.slice(0, 10)}…
+                  </code>
                 </div>
               ))}
             </div>
-          </div>
-
-          <div className="bg-card rounded-xl border shadow-sm">
-            <div className="flex items-center justify-between border-b px-6 py-4">
-              <h2 className="font-semibold">Audits</h2>
-              <Link href="/dashboard/audits" className="text-primary text-sm hover:underline">
-                View all
-              </Link>
+          ) : (
+            <div className="text-muted-foreground px-6 py-10 text-center text-sm">
+              No contracts added yet.
             </div>
+          )}
+        </section>
+
+        <section className="bg-card rounded-xl border shadow-sm">
+          <div className="flex items-center justify-between border-b px-6 py-4">
+            <div>
+              <h2 className="font-semibold">Audits</h2>
+              <p className="text-muted-foreground mt-0.5 text-xs">Latest security assessments</p>
+            </div>
+            <Link
+              href={`/dashboard/audits?projectId=${project.id}`}
+              className="text-primary text-sm hover:underline"
+            >
+              View all
+            </Link>
+          </div>
+          {project.audits.length ? (
             <div className="divide-y">
-              {audits.map((audit) => {
-                const Icon = statusIcon[audit.status] ?? Clock;
-                const color = statusColor[audit.status] ?? 'text-muted-foreground';
+              {project.audits.map((audit) => {
+                const status = statusStyles[audit.status] ?? {
+                  icon: Clock,
+                  color: 'text-muted-foreground',
+                };
+                const Icon = status.icon;
                 return (
                   <Link
                     key={audit.id}
                     href={`/dashboard/audits/${audit.id}`}
-                    className="hover:bg-muted/50 flex items-center justify-between px-6 py-3 transition-colors"
+                    className="hover:bg-muted/50 flex items-center justify-between gap-3 px-6 py-3 transition-colors"
                   >
                     <div className="flex items-center gap-3">
-                      <span className={`inline-flex items-center gap-1 text-sm ${color}`}>
-                        <Icon className="h-4 w-4" /> {audit.status}
-                      </span>
-                      <span className="text-muted-foreground text-sm">
-                        {audit.findings} findings
-                      </span>
+                      <Icon className={`h-4 w-4 ${status.color}`} />
+                      <div>
+                        <p className={`text-sm font-medium ${status.color}`}>{audit.status}</p>
+                        <p className="text-muted-foreground text-xs">
+                          {audit._count.findings} findings
+                        </p>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-4">
-                      <span className="text-sm font-medium">{audit.score}/100</span>
-                      <span className="text-muted-foreground text-xs">{audit.date}</span>
-                    </div>
+                    <span className="text-sm font-semibold">
+                      {audit.securityScore === null ? '—' : `${audit.securityScore}/100`}
+                    </span>
                   </Link>
                 );
               })}
             </div>
-          </div>
-        </div>
-
-        <div className="space-y-6">
-          <div className="bg-card rounded-xl border p-6 shadow-sm">
-            <h3 className="font-semibold">Quick Actions</h3>
-            <div className="mt-4 space-y-2">
-              <button className="hover:bg-muted w-full rounded-lg border px-4 py-2.5 text-left text-sm font-medium transition-colors">
-                <Play className="mr-2 inline h-4 w-4" />
-                Run Full Audit
-              </button>
-              <button className="hover:bg-muted w-full rounded-lg border px-4 py-2.5 text-left text-sm font-medium transition-colors">
-                <FileCode className="mr-2 inline h-4 w-4" />
-                Upload Contract
-              </button>
-              <button className="hover:bg-muted w-full rounded-lg border px-4 py-2.5 text-left text-sm font-medium transition-colors">
-                <Shield className="mr-2 inline h-4 w-4" />
-                Verify on Stellar
-              </button>
+          ) : (
+            <div className="text-muted-foreground px-6 py-10 text-center text-sm">
+              No audits yet.
             </div>
-          </div>
-
-          <div className="bg-card rounded-xl border p-6 shadow-sm">
-            <h3 className="font-semibold">Security Summary</h3>
-            <div className="mt-4 space-y-3">
-              {[
-                { severity: 'CRITICAL', count: 0, color: 'bg-red-500' },
-                { severity: 'HIGH', count: 3, color: 'bg-orange-500' },
-                { severity: 'MEDIUM', count: 7, color: 'bg-yellow-500' },
-                { severity: 'LOW', count: 4, color: 'bg-green-500' },
-              ].map((item) => (
-                <div key={item.severity} className="flex items-center justify-between text-sm">
-                  <div className="flex items-center gap-2">
-                    <span className={`h-2 w-2 rounded-full ${item.color}`} />
-                    {item.severity}
-                  </div>
-                  <span className="text-muted-foreground font-mono">{item.count}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
+          )}
+        </section>
       </div>
     </div>
   );

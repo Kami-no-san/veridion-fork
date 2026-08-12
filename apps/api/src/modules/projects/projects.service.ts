@@ -55,7 +55,31 @@ export class ProjectsService {
   async findOne(id: string, userId: string) {
     const project = await this.prisma.db.project.findUnique({
       where: { id },
-      include: { _count: { select: { audits: true, contracts: true } } },
+      include: {
+        _count: { select: { audits: true, contracts: true } },
+        contracts: {
+          select: {
+            id: true,
+            name: true,
+            filePath: true,
+            language: true,
+            hash: true,
+            lineCount: true,
+            updatedAt: true,
+          },
+          orderBy: { updatedAt: 'desc' },
+        },
+        audits: {
+          select: {
+            id: true,
+            status: true,
+            securityScore: true,
+            createdAt: true,
+            _count: { select: { findings: true } },
+          },
+          orderBy: { createdAt: 'desc' },
+        },
+      },
     });
 
     if (!project) throw new NotFoundException('Project not found');
