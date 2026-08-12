@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { toast } from 'sonner';
 
-import { storeAccessToken } from '@/lib/api-client';
+import { apiFetch, storeAccessToken } from '@/lib/api-client';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -22,26 +22,11 @@ export default function LoginPage() {
     const password = formData.get('password') as string;
 
     try {
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000/api/v1'}/auth/login`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email, password }),
-        },
-      );
-      const payload = (await response.json()) as {
-        accessToken?: string;
-        message?: string | string[];
-      };
-      if (!response.ok || !payload.accessToken) {
-        throw new Error(
-          Array.isArray(payload.message)
-            ? payload.message.join(', ')
-            : (payload.message ?? 'Unable to sign in'),
-        );
-      }
-      storeAccessToken(payload.accessToken);
+      const response = await apiFetch<{ accessToken: string }>('/auth/login', {
+        method: 'POST',
+        body: JSON.stringify({ email, password }),
+      });
+      storeAccessToken(response.accessToken);
       toast.success('Welcome back!');
       router.push('/dashboard');
     } catch (error) {

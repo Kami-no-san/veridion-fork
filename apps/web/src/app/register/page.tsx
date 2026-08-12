@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { toast } from 'sonner';
 
-import { storeAccessToken } from '@/lib/api-client';
+import { apiFetch, storeAccessToken } from '@/lib/api-client';
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -29,26 +29,11 @@ export default function RegisterPage() {
     }
 
     try {
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000/api/v1'}/auth/register`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ displayName, email, password }),
-        },
-      );
-      const payload = (await response.json()) as {
-        accessToken?: string;
-        message?: string | string[];
-      };
-      if (!response.ok || !payload.accessToken) {
-        throw new Error(
-          Array.isArray(payload.message)
-            ? payload.message.join(', ')
-            : (payload.message ?? 'Unable to create account'),
-        );
-      }
-      storeAccessToken(payload.accessToken);
+      const response = await apiFetch<{ accessToken: string }>('/auth/register', {
+        method: 'POST',
+        body: JSON.stringify({ displayName, email, password }),
+      });
+      storeAccessToken(response.accessToken);
       toast.success('Account created successfully!');
       router.push('/dashboard');
     } catch (error) {
