@@ -87,6 +87,11 @@ describe('AiService', () => {
     message: 'Tell me about the reentrancy finding',
   };
 
+  afterEach(() => {
+    // Clear any lingering conversation timers so Jest can exit cleanly.
+    service.clearConversation('user-1', 'audit-1');
+  });
+
   it('should be defined', () => {
     expect(service).toBeDefined();
   });

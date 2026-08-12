@@ -3,6 +3,7 @@ import {
   Injectable,
   InternalServerErrorException,
   NotFoundException,
+  type OnModuleDestroy,
 } from '@nestjs/common';
 import { AiService as AiEngineService } from '@veridion/ai-engine';
 import { logger } from '@veridion/logger';
@@ -46,7 +47,7 @@ const MAX_HISTORY_LENGTH = 50;
 const CONVERSATION_TTL_MS = 30 * 60 * 1000; // 30 minutes
 
 @Injectable()
-export class AiService {
+export class AiService implements OnModuleDestroy {
   private readonly conversations = new Map<string, AiChatMessage[]>();
   private readonly conversationTimers = new Map<string, NodeJS.Timeout>();
 
@@ -146,6 +147,14 @@ export class AiService {
       clearTimeout(timer);
       this.conversationTimers.delete(key);
     }
+  }
+
+  onModuleDestroy(): void {
+    for (const timer of this.conversationTimers.values()) {
+      clearTimeout(timer);
+    }
+    this.conversations.clear();
+    this.conversationTimers.clear();
   }
 
   // ---- Private helpers ----
