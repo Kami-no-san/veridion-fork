@@ -13,6 +13,12 @@ import { ReportsService } from './reports.service';
 export class ReportsController {
   constructor(private readonly reportsService: ReportsService) {}
 
+  @Get()
+  @ApiOperation({ summary: 'List generated reports for the current user' })
+  list(@CurrentUser('id') userId: string) {
+    return this.reportsService.list(userId);
+  }
+
   @Post('generate')
   @ApiOperation({ summary: 'Generate audit report' })
   generate(@Body() dto: GenerateReportDto, @CurrentUser('id') userId: string) {
