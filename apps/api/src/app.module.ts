@@ -3,6 +3,7 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { ThrottlerModule } from '@nestjs/throttler';
 
+import { CacheModule } from './common/cache/cache.module';
 import { PrismaModule } from './common/prisma/prisma.module';
 import { AiModule } from './modules/ai/ai.module';
 import { ApiKeysModule } from './modules/api-keys/api-keys.module';
@@ -27,6 +28,7 @@ import { UsersModule } from './modules/users/users.module';
         },
       }),
     }),
+    CacheModule,
     PrismaModule,
     HealthModule,
     AuthModule,
