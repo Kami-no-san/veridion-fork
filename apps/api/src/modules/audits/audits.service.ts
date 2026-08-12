@@ -1,12 +1,28 @@
 import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { logger } from '@veridion/logger';
 
+import { CacheService } from '../../common/cache/cache.service';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import type { AuditQueryDto, CreateAuditDto } from './dto/audit.dto';
 
+type AuditListResult = {
+  data: unknown[];
+  meta: {
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+    hasNextPage: boolean;
+    hasPreviousPage: boolean;
+  };
+};
+
 @Injectable()
 export class AuditsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly cache: CacheService,
+  ) {}
 
   async create(userId: string, dto: CreateAuditDto) {
     const project = await this.prisma.db.project.findUnique({ where: { id: dto.projectId } });
@@ -21,13 +37,19 @@ export class AuditsService {
       },
     });
 
+    await this.cache.invalidateByPrefix(this.auditCachePrefix(userId));
+    await this.cache.invalidate(`project:${userId}:${dto.projectId}`);
     logger.info({ auditId: audit.id, projectId: dto.projectId }, 'Audit created');
 
     return audit;
   }
 
-  async findAll(userId: string, query: AuditQueryDto) {
+  async findAll(userId: string, query: AuditQueryDto): Promise<AuditListResult> {
     const { page = 1, limit = 20, status, projectId } = query;
+    const cacheKey = `${this.auditCachePrefix(userId)}${page}:${limit}:${status ?? ''}:${projectId ?? ''}`;
+    const cached = await this.cache.get<unknown>(cacheKey);
+    if (cached !== null) return cached as AuditListResult;
+
     const where = {
       project: { userId },
       ...(status ? { status } : {}),
@@ -45,7 +67,7 @@ export class AuditsService {
       this.prisma.db.audit.count({ where }),
     ]);
 
-    return {
+    const result = {
       data,
       meta: {
         total,
@@ -56,9 +78,16 @@ export class AuditsService {
         hasPreviousPage: page > 1,
       },
     };
+
+    await this.cache.set(cacheKey, result, this.cache.getTtl('audits'));
+    return result;
   }
 
-  async findOne(id: string, userId: string) {
+  async findOne(id: string, userId: string): Promise<unknown> {
+    const cacheKey = `audit:${userId}:${id}`;
+    const cached = await this.cache.get<unknown>(cacheKey);
+    if (cached !== null) return cached;
+
     const audit = await this.prisma.db.audit.findUnique({
       where: { id },
       include: {
@@ -70,6 +99,11 @@ export class AuditsService {
     if (!audit) throw new NotFoundException('Audit not found');
     if (audit.project.userId !== userId) throw new ForbiddenException('Access denied');
 
+    await this.cache.set(cacheKey, audit, this.cache.getTtl('audits'));
     return audit;
+  }
+
+  private auditCachePrefix(userId: string): string {
+    return `audits:${userId}:`;
   }
 }
