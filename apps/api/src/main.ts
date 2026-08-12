@@ -5,8 +5,13 @@ import { logger } from '@veridion/logger';
 import helmet from 'helmet';
 
 import { AppModule } from './app.module';
+import { validateEnv } from './config/validation';
 
 async function bootstrap() {
+  // Validate environment variables on startup.
+  const env = validateEnv();
+  process.env.PORT = String(env.PORT);
+
   const app = await NestFactory.create(AppModule);
 
   // Security
