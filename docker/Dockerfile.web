@@ -3,6 +3,9 @@ RUN corepack enable && corepack prepare pnpm@9.1.0 --activate
 
 FROM base AS builder
 WORKDIR /app
+# Use a hoisted (flat) node_modules layout so the runtime image can copy
+# node_modules directly without pnpm's nested symlink structure.
+ENV npm_config_node_linker=hoisted
 COPY pnpm-lock.yaml pnpm-workspace.yaml package.json turbo.json ./
 COPY packages ./packages
 COPY apps/web ./apps/web
@@ -14,7 +17,11 @@ WORKDIR /app
 COPY --from=builder /app/apps/web/.next ./apps/web/.next
 COPY --from=builder /app/apps/web/public ./apps/web/public
 COPY --from=builder /app/apps/web/package.json ./apps/web/package.json
+COPY --from=builder /app/apps/web/next.config.js ./apps/web/next.config.js
 COPY --from=builder /app/node_modules ./node_modules
+# Copy all workspace packages so the pnpm workspace symlinks resolve at runtime.
+COPY --from=builder /app/packages ./packages
+COPY --from=builder /app/pnpm-workspace.yaml ./pnpm-workspace.yaml
 
 EXPOSE 3000
 CMD ["pnpm", "--filter", "@veridion/web", "start"]
