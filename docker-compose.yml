@@ -1,35 +1,43 @@
-version: '3.8'
+# ---------------------------------------------------------------------------
+# Veridion full-stack development environment.
+#
+#   docker compose up -d
+#
+# Starts: PostgreSQL, Redis, API (NestJS), and Web (Next.js).
+# The API runs Prisma migrations (`db push`) automatically on startup.
+# See `.env.example` for a full reference of available environment variables.
+# ---------------------------------------------------------------------------
 
 services:
   postgres:
     image: postgres:16-alpine
     container_name: veridion-db
     environment:
-      POSTGRES_USER: veridion
-      POSTGRES_PASSWORD: veridion
-      POSTGRES_DB: veridion
+      POSTGRES_USER: ${POSTGRES_USER:-veridion}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-veridion}
+      POSTGRES_DB: ${POSTGRES_DB:-veridion}
     ports:
-      - '5432:5432'
+      - '${POSTGRES_PORT:-5432}:5432'
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U veridion']
+      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER:-veridion}']
       interval: 5s
       timeout: 5s
-      retries: 5
+      retries: 10
 
   redis:
     image: redis:7-alpine
     container_name: veridion-redis
     ports:
-      - '6379:6379'
+      - '${REDIS_PORT:-6379}:6379'
     volumes:
       - redis_data:/data
     healthcheck:
       test: ['CMD', 'redis-cli', 'ping']
       interval: 5s
       timeout: 5s
-      retries: 5
+      retries: 10
 
   api:
     build:
@@ -37,21 +45,51 @@ services:
       dockerfile: docker/Dockerfile.api
     container_name: veridion-api
     ports:
-      - '4000:4000'
+      - '${PORT:-4000}:4000'
     environment:
-      NODE_ENV: development
-      DATABASE_URL: postgresql://veridion:veridion@postgres:5432/veridion
+      NODE_ENV: ${NODE_ENV:-development}
+      PORT: 4000
+      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:3000}
+      # Database
+      DATABASE_URL: postgresql://${POSTGRES_USER:-veridion}:${POSTGRES_PASSWORD:-veridion}@postgres:5432/${POSTGRES_DB:-veridion}
+      # Redis
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
       REDIS_URL: redis://redis:6379
-      JWT_SECRET: dev-jwt-secret-change-in-production
-      JWT_REFRESH_SECRET: dev-refresh-secret-change-in-production
+      # Auth
+      JWT_SECRET: ${JWT_SECRET:-dev-secret}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:-dev-refresh-secret}
+      JWT_EXPIRATION: ${JWT_EXPIRATION:-15m}
+      JWT_REFRESH_EXPIRATION: ${JWT_REFRESH_EXPIRATION:-7d}
+      # AI
+      AI_PROVIDER: ${AI_PROVIDER:-openai}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      # Blockchain
+      STELLAR_NETWORK: ${STELLAR_NETWORK:-testnet}
+      STELLAR_RPC_URL: ${STELLAR_RPC_URL:-https://soroban-testnet.stellar.org}
+      # Email
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      EMAIL_FROM: ${EMAIL_FROM:-}
     depends_on:
       postgres:
         condition: service_healthy
       redis:
         condition: service_healthy
-    volumes:
-      - .:/app
-      - /app/node_modules
+    healthcheck:
+      test:
+        [
+          'CMD-SHELL',
+          'node -e "fetch(''http://localhost:4000/api/v1/health'').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"',
+        ]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    restart: unless-stopped
 
   web:
     build:
@@ -61,12 +99,24 @@ services:
     ports:
       - '3000:3000'
     environment:
-      NEXT_PUBLIC_API_URL: http://localhost:4000/api/v1
+      NODE_ENV: ${NODE_ENV:-development}
+      NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL:-http://localhost:3000}
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:4000}
+      NEXT_PUBLIC_STELLAR_NETWORK: ${NEXT_PUBLIC_STELLAR_NETWORK:-testnet}
     depends_on:
-      - api
-    volumes:
-      - .:/app
-      - /app/node_modules
+      api:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          'CMD-SHELL',
+          'node -e "fetch(''http://localhost:3000'').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"',
+        ]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    restart: unless-stopped
 
 volumes:
   postgres_data:
