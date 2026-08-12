@@ -1,49 +1,162 @@
 'use client';
 
-import { Bot, ChevronRight, Send, User } from 'lucide-react';
-import { useState } from 'react';
+import { AlertCircle, WifiOff } from 'lucide-react';
+import { useCallback, useEffect, useState } from 'react';
 
-const mockProjects = [
-  { id: '1', name: 'DeFi Protocol v2' },
-  { id: '2', name: 'NFT Marketplace' },
-  { id: '3', name: 'Staking Rewards' },
-];
+import { type AuditOption, ChatContext } from '@/components/ai-chat/chat-context';
+import { ChatInput } from '@/components/ai-chat/chat-input';
+import { type ChatMessage, ChatMessages } from '@/components/ai-chat/chat-messages';
 
-interface Message {
-  id: string;
-  role: 'user' | 'assistant';
-  content: string;
-  timestamp: Date;
+interface Citation {
+  findingId?: string;
+  lineStart?: number;
+  lineEnd?: number;
 }
 
-const initialMessages: Message[] = [
-  {
-    id: 'welcome',
-    role: 'assistant',
-    content:
-      "Hello! I'm your Veridion AI security assistant. I can help you analyze smart contract vulnerabilities, explain findings, suggest fixes, and answer questions about your audits. Select a project and audit to get started, or ask me anything about smart contract security.",
-    timestamp: new Date(),
-  },
-];
-
-const suggestedQuestions = [
-  'Explain reentrancy vulnerabilities',
-  'How can I fix the access control issue?',
-  'What are the most critical findings?',
-  'Show gas optimization tips',
-  'Summarize the audit results',
-];
+interface ApiChatResponse {
+  message: string;
+  citations: Citation[];
+}
 
 export default function AiChatPage() {
-  const [messages, setMessages] = useState<Message[]>(initialMessages);
-  const [input, setInput] = useState('');
-  const [selectedProject, setSelectedProject] = useState('');
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [audits, setAudits] = useState<AuditOption[]>([]);
+  const [selectedAuditId, setSelectedAuditId] = useState('');
+  const [loadingAudits, setLoadingAudits] = useState(true);
+
+  // Fetch available audits for context
+  useEffect(() => {
+    async function fetchAudits() {
+      try {
+        const token = getAuthToken();
+        if (!token) {
+          setLoadingAudits(false);
+          return;
+        }
+
+        const res = await fetch(`${getApiBaseUrl()}/api/v1/audits?limit=50&sortOrder=desc`, {
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        if (!res.ok) {
+          throw new Error(`Failed to fetch audits: ${res.status}`);
+        }
+
+        const json = (await res.json()) as {
+          data?: Array<{
+            id: string;
+            status: string;
+            securityScore: number | null;
+            project?: { name: string };
+          }>;
+        };
+        if (json.data) {
+          const auditOptions: AuditOption[] = json.data.map((audit) => ({
+            id: audit.id,
+            name: audit.project?.name ?? `Audit ${audit.id.slice(0, 8)}`,
+            status: audit.status,
+            securityScore: audit.securityScore,
+          }));
+          setAudits(auditOptions);
+
+          // Auto-select the most recent completed audit
+          const completed = auditOptions.find((a) => a.status === 'COMPLETED');
+          if (completed) {
+            setSelectedAuditId(completed.id);
+            setMessages([
+              {
+                id: 'welcome',
+                role: 'assistant',
+                content: `I'm ready to help you analyze the "${completed.name}" audit. Ask me about its findings, how to fix vulnerabilities, or anything about smart contract security.`,
+                timestamp: new Date(),
+              },
+            ]);
+          } else if (auditOptions.length > 0) {
+            const first = auditOptions[0];
+            if (!first) return;
+            setSelectedAuditId(first.id);
+            setMessages([
+              {
+                id: 'welcome',
+                role: 'assistant',
+                content: `I'm your Veridion AI security assistant. I see you have the "${first.name}" audit (${first.status}). Ask me anything about smart contract security!`,
+                timestamp: new Date(),
+              },
+            ]);
+          }
+        }
+      } catch (err) {
+        console.error('Failed to fetch audits:', err);
+      } finally {
+        setLoadingAudits(false);
+      }
+    }
+
+    void fetchAudits();
+  }, []);
+
+  // Reset messages when switching audits
+  const handleSelectAudit = useCallback(
+    (auditId: string) => {
+      if (auditId === selectedAuditId) return;
+      setSelectedAuditId(auditId);
+      setMessages([]);
+      setError(null);
+
+      const audit = audits.find((a) => a.id === auditId);
+      if (audit) {
+        setMessages([
+          {
+            id: `switch-${Date.now()}`,
+            role: 'assistant',
+            content: `Switched to audit: **${audit.name}** (${audit.status}${audit.securityScore !== null ? ` · Score: ${audit.securityScore}/100` : ''}). How can I help you with this audit?`,
+            timestamp: new Date(),
+          },
+        ]);
+      }
+    },
+    [audits, selectedAuditId],
+  );
+
+  async function clearConversation() {
+    if (!selectedAuditId) return;
+
+    try {
+      const token = getAuthToken();
+      if (token) {
+        await fetch(`${getApiBaseUrl()}/api/v1/ai/conversation/${selectedAuditId}`, {
+          method: 'DELETE',
+          headers: { Authorization: `Bearer ${token}` },
+        });
+      }
+    } catch {
+      // Silent fail — clear locally even if API call fails
+    }
+
+    setMessages([
+      {
+        id: `new-${Date.now()}`,
+        role: 'assistant',
+        content: 'Starting a new conversation. How can I help you with this audit?',
+        timestamp: new Date(),
+      },
+    ]);
+    setError(null);
+  }
 
   async function sendMessage(content: string) {
     if (!content.trim() || loading) return;
+    if (!selectedAuditId) {
+      setError('Please select an audit to start chatting.');
+      return;
+    }
 
-    const userMsg: Message = {
+    const userMsg: ChatMessage = {
       id: Date.now().toString(),
       role: 'user',
       content,
@@ -51,50 +164,56 @@ export default function AiChatPage() {
     };
 
     setMessages((prev) => [...prev, userMsg]);
-    setInput('');
     setLoading(true);
+    setError(null);
 
-    // TODO: Replace with actual AI API call
-    await new Promise((r) => setTimeout(r, 1500));
-
-    const aiResponses: Record<string, string> = {
-      reentrancy:
-        "Reentrancy is one of the most dangerous vulnerabilities in smart contracts. It occurs when a contract makes an external call to another contract before updating its own state. The called contract can then recursively call back into the original function, potentially draining funds.\n\nThe fix is the **Checks-Effects-Interactions** pattern:\n1. **Checks**: Validate all preconditions\n2. **Effects**: Update all state variables\n3. **Interactions**: Make external calls last\n\nUsing OpenZeppelin's `ReentrancyGuard` modifier is also a great defense.",
-      'access control':
-        "The access control issue stems from missing authorization checks on critical functions. Without proper access control (like `onlyOwner` modifiers), anyone can call sensitive functions.\n\n**Recommended fix**:\n- Use OpenZeppelin's `Ownable` or `AccessControl` contracts\n- Implement role-based access with granular permissions\n- Always validate `msg.sender` for privileged operations",
-      critical:
-        'Based on the audit results, the most critical findings are:\n\n1. **Reentrancy in withdraw function** (CRITICAL) - Can lead to complete fund drainage\n2. **Unprotected selfdestruct** (MEDIUM) - Anyone can destroy the contract\n3. **Missing zero-address checks** (LOW) - Can brick admin functionality\n\nI recommend addressing the critical reentrancy finding immediately before deployment.',
-      gas: "Here are the top gas optimization tips for your contracts:\n\n1. **Cache array length**: Store `arr.length` in a local variable before loops\n2. **Use `unchecked` blocks**: For arithmetic in Solidity 0.8+ when you know overflow is impossible\n3. **Pack state variables**: Group `uint128` or smaller types together\n4. **Use `calldata` instead of `memory`**: For function parameters that aren't modified\n5. **Avoid redundant storage reads**: Cache storage values in memory\n\nEstimated savings: 15-30% on gas costs",
-      summarize:
-        '**Audit Summary for DeFi Protocol v2:**\n\n- **Security Score**: 82/100 (Good)\n- **Total Findings**: 5\n  - 1 Critical (Reentrancy)\n  - 1 High (Access Control)\n  - 1 Medium (Selfdestruct)\n  - 1 Low (Zero-address)\n  - 1 Gas (Loop optimization)\n\n**Key Action Items**:\n1. Fix the reentrancy vulnerability in LiquidPool.sol immediately\n2. Implement proper access control on administrative functions\n3. Add emergency stop restrictions\n\nThe project shows good overall security posture but the critical finding must be resolved before mainnet deployment.',
-    };
-
-    const lowerContent = content.toLowerCase();
-    let response =
-      'I can help you with that! Could you provide more details or select an audit to get specific context about your findings?';
-
-    for (const [keyword, reply] of Object.entries(aiResponses)) {
-      if (lowerContent.includes(keyword)) {
-        response = reply;
-        break;
+    try {
+      const token = getAuthToken();
+      if (!token) {
+        throw new Error('Authentication required. Please log in.');
       }
-    }
 
-    const aiMsg: Message = {
-      id: (Date.now() + 1).toString(),
-      role: 'assistant',
-      content: response,
-      timestamp: new Date(),
-    };
+      const res = await fetch(`${getApiBaseUrl()}/api/v1/ai/chat`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          auditId: selectedAuditId,
+          message: content,
+        }),
+      });
 
-    setMessages((prev) => [...prev, aiMsg]);
-    setLoading(false);
-  }
+      if (!res.ok) {
+        const errorData = (await res.json().catch(() => null)) as { message?: string };
+        throw new Error(errorData?.message ?? `Request failed with status ${res.status}`);
+      }
 
-  function handleKeyDown(e: React.KeyboardEvent) {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      void sendMessage(input);
+      const json = (await res.json()) as ApiChatResponse;
+
+      const aiMsg: ChatMessage = {
+        id: (Date.now() + 1).toString(),
+        role: 'assistant',
+        content: json.message,
+        citations: json.citations,
+        timestamp: new Date(),
+      };
+
+      setMessages((prev) => [...prev, aiMsg]);
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to get AI response';
+      setError(errorMessage);
+
+      const errorMsg: ChatMessage = {
+        id: (Date.now() + 2).toString(),
+        role: 'assistant',
+        content: `⚠️ ${errorMessage}`,
+        timestamp: new Date(),
+      };
+      setMessages((prev) => [...prev, errorMsg]);
+    } finally {
+      setLoading(false);
     }
   }
 
@@ -108,139 +227,63 @@ export default function AiChatPage() {
           </p>
         </div>
 
-        <select
-          value={selectedProject}
-          onChange={(e) => setSelectedProject(e.target.value)}
-          className="bg-background focus:ring-ring rounded-lg border px-4 py-2 text-sm focus:outline-none focus:ring-2"
-        >
-          <option value="">All Projects</option>
-          {mockProjects.map((p) => (
-            <option key={p.id} value={p.id}>
-              {p.name}
-            </option>
-          ))}
-        </select>
+        {error && (
+          <div className="bg-destructive/10 text-destructive flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm">
+            <AlertCircle className="h-4 w-4" />
+            <span>{error}</span>
+          </div>
+        )}
       </div>
 
       <div className="flex flex-1 gap-6">
         <div className="bg-card flex flex-1 flex-col rounded-xl border shadow-sm">
-          <div className="flex-1 space-y-4 overflow-y-auto p-6">
-            {messages.map((msg) => (
-              <div
-                key={msg.id}
-                className={`flex gap-3 ${msg.role === 'user' ? 'flex-row-reverse' : ''}`}
-              >
-                <div
-                  className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${
-                    msg.role === 'assistant'
-                      ? 'bg-primary/10 text-primary'
-                      : 'bg-muted text-muted-foreground'
-                  }`}
-                >
-                  {msg.role === 'assistant' ? (
-                    <Bot className="h-4 w-4" />
-                  ) : (
-                    <User className="h-4 w-4" />
-                  )}
-                </div>
-                <div
-                  className={`max-w-[80%] rounded-xl px-4 py-3 text-sm leading-relaxed ${
-                    msg.role === 'assistant' ? 'bg-muted/50' : 'bg-primary text-primary-foreground'
-                  }`}
-                >
-                  <div className="whitespace-pre-wrap">{msg.content}</div>
-                  <p
-                    className={`mt-1 text-xs ${
-                      msg.role === 'assistant'
-                        ? 'text-muted-foreground'
-                        : 'text-primary-foreground/70'
-                    }`}
-                  >
-                    {msg.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                  </p>
-                </div>
-              </div>
-            ))}
+          <ChatMessages messages={messages} loading={loading} />
 
-            {loading && (
-              <div className="flex gap-3">
-                <div className="bg-primary/10 text-primary flex h-8 w-8 shrink-0 items-center justify-center rounded-full">
-                  <Bot className="h-4 w-4" />
-                </div>
-                <div className="bg-muted/50 rounded-xl px-4 py-3">
-                  <div className="flex gap-1.5">
-                    <span className="bg-primary/60 h-2 w-2 animate-bounce rounded-full [animation-delay:0ms]" />
-                    <span className="bg-primary/60 h-2 w-2 animate-bounce rounded-full [animation-delay:150ms]" />
-                    <span className="bg-primary/60 h-2 w-2 animate-bounce rounded-full [animation-delay:300ms]" />
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-
-          <div className="border-t p-4">
-            <div className="flex gap-2">
-              <div className="relative flex-1">
-                <textarea
-                  value={input}
-                  onChange={(e) => setInput(e.target.value)}
-                  onKeyDown={handleKeyDown}
-                  placeholder="Ask about vulnerabilities, fixes, or audit results..."
-                  rows={1}
-                  className="bg-background placeholder:text-muted-foreground focus:ring-ring w-full resize-none rounded-lg border px-4 py-2.5 pr-10 text-sm focus:outline-none focus:ring-2"
-                />
-                <button
-                  onClick={() => {
-                    void sendMessage(input);
-                  }}
-                  disabled={!input.trim() || loading}
-                  className="text-muted-foreground hover:text-foreground absolute right-2 top-1/2 -translate-y-1/2 rounded-md p-1 disabled:opacity-30"
-                >
-                  <Send className="h-4 w-4" />
-                </button>
-              </div>
+          {!selectedAuditId && !loadingAudits && (
+            <div className="flex flex-1 flex-col items-center justify-center p-6">
+              <WifiOff className="text-muted-foreground mb-3 h-10 w-10" />
+              <h3 className="text-lg font-semibold">No Audit Selected</h3>
+              <p className="text-muted-foreground mt-1 text-sm">
+                Select an audit from the sidebar to start a conversation with the AI assistant.
+              </p>
             </div>
-          </div>
+          )}
+
+          <ChatInput
+            onSend={(msg) => {
+              void sendMessage(msg);
+            }}
+            loading={loading}
+            placeholder={
+              selectedAuditId
+                ? 'Ask about vulnerabilities, fixes, or audit results...'
+                : 'Select an audit to start chatting...'
+            }
+          />
         </div>
 
-        <div className="hidden w-64 shrink-0 space-y-4 xl:block">
-          <div className="bg-card rounded-xl border p-4 shadow-sm">
-            <h3 className="text-sm font-semibold">Suggested Questions</h3>
-            <div className="mt-3 space-y-1.5">
-              {suggestedQuestions.map((q) => (
-                <button
-                  key={q}
-                  onClick={() => {
-                    void sendMessage(q);
-                  }}
-                  className="text-muted-foreground hover:bg-muted hover:text-foreground flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm transition-colors"
-                >
-                  <ChevronRight className="h-3.5 w-3.5 shrink-0" />
-                  {q}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div className="bg-card rounded-xl border p-4 shadow-sm">
-            <h3 className="text-sm font-semibold">Quick Stats</h3>
-            <div className="mt-3 space-y-2">
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground">Findings explained</span>
-                <span className="font-medium">24</span>
-              </div>
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground">Fixes suggested</span>
-                <span className="font-medium">18</span>
-              </div>
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground">Messages today</span>
-                <span className="font-medium">7</span>
-              </div>
-            </div>
-          </div>
-        </div>
+        <ChatContext
+          audits={audits}
+          selectedAuditId={selectedAuditId}
+          onSelectAudit={handleSelectAudit}
+          onClearConversation={() => {
+            void clearConversation();
+          }}
+          loadingAudits={loadingAudits}
+        />
       </div>
     </div>
   );
+}
+
+// ---- Helpers ----
+
+function getAuthToken(): string | null {
+  if (typeof window === 'undefined') return null;
+  return localStorage.getItem('veridion_access_token');
+}
+
+function getApiBaseUrl(): string {
+  if (typeof window === 'undefined') return 'http://localhost:4000';
+  return process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
 }
