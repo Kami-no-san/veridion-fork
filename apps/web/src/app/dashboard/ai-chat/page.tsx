@@ -14,12 +14,8 @@ interface Citation {
 }
 
 interface ApiChatResponse {
-  success: boolean;
-  data: {
-    message: string;
-    citations: Citation[];
-  };
-  message?: string;
+  message: string;
+  citations: Citation[];
 }
 
 export default function AiChatPage() {
@@ -52,18 +48,15 @@ export default function AiChatPage() {
         }
 
         const json = (await res.json()) as {
-          success: boolean;
-          data?: {
-            data?: Array<{
-              id: string;
-              status: string;
-              securityScore: number | null;
-              project?: { name: string };
-            }>;
-          };
+          data?: Array<{
+            id: string;
+            status: string;
+            securityScore: number | null;
+            project?: { name: string };
+          }>;
         };
-        if (json.success && json.data?.data) {
-          const auditOptions: AuditOption[] = json.data.data.map((audit) => ({
+        if (json.data) {
+          const auditOptions: AuditOption[] = json.data.map((audit) => ({
             id: audit.id,
             name: audit.project?.name ?? `Audit ${audit.id.slice(0, 8)}`,
             status: audit.status,
@@ -199,15 +192,11 @@ export default function AiChatPage() {
 
       const json = (await res.json()) as ApiChatResponse;
 
-      if (!json.success || !json.data) {
-        throw new Error(json.message ?? 'Unexpected API response');
-      }
-
       const aiMsg: ChatMessage = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
-        content: json.data.message,
-        citations: json.data.citations,
+        content: json.message,
+        citations: json.citations,
         timestamp: new Date(),
       };
 
@@ -291,7 +280,7 @@ export default function AiChatPage() {
 
 function getAuthToken(): string | null {
   if (typeof window === 'undefined') return null;
-  return localStorage.getItem('accessToken');
+  return localStorage.getItem('veridion_access_token');
 }
 
 function getApiBaseUrl(): string {
