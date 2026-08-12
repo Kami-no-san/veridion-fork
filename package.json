@@ -51,6 +51,7 @@
     "db:migrate": "turbo db:migrate --filter=@veridion/database",
     "db:push": "turbo db:push --filter=@veridion/database",
     "db:seed": "turbo db:seed --filter=@veridion/database",
+    "db:reset": "turbo db:reset --filter=@veridion/database",
     "db:studio": "turbo db:studio --filter=@veridion/database",
     "prepare": "husky || true",
     "commitlint": "commitlint --edit",
