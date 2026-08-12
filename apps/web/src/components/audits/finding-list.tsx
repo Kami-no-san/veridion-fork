@@ -1,28 +1,28 @@
-"use client";
+'use client';
 
-import { Filter, Search } from "lucide-react";
-import { useMemo, useState } from "react";
+import { Filter, Search } from 'lucide-react';
+import { useMemo, useState } from 'react';
 
-import { type Finding,FindingCard } from "./finding-card";
+import { type Finding, FindingCard } from './finding-card';
 
 interface FindingListProps {
   findings: Finding[];
   onStatusChange: (findingId: string, newStatus: string) => void;
 }
 
-const severityOrder = ["CRITICAL", "HIGH", "MEDIUM", "LOW", "GAS", "INFORMATIONAL"];
+const severityOrder = ['CRITICAL', 'HIGH', 'MEDIUM', 'LOW', 'GAS', 'INFORMATIONAL'];
 
 export function FindingList({ findings, onStatusChange }: FindingListProps) {
-  const [search, setSearch] = useState("");
-  const [severityFilter, setSeverityFilter] = useState<string>("");
-  const [statusFilter, setStatusFilter] = useState<string>("");
+  const [search, setSearch] = useState('');
+  const [severityFilter, setSeverityFilter] = useState<string>('');
+  const [statusFilter, setStatusFilter] = useState<string>('');
 
   const availablePlugins = useMemo(() => {
     const plugins = new Set(findings.map((f) => f.pluginId));
     return Array.from(plugins).sort();
   }, [findings]);
 
-  const [pluginFilter, setPluginFilter] = useState<string>("");
+  const [pluginFilter, setPluginFilter] = useState<string>('');
 
   const filteredFindings = useMemo(() => {
     return findings.filter((f) => {
@@ -53,14 +53,14 @@ export function FindingList({ findings, onStatusChange }: FindingListProps) {
       {/* Filters */}
       <div className="flex flex-wrap items-center gap-3">
         {/* Search */}
-        <div className="relative flex-1 min-w-[200px] max-w-xs">
+        <div className="relative min-w-[200px] max-w-xs flex-1">
           <Search className="text-muted-foreground absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2" />
           <input
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search findings..."
-            className="bg-background focus:ring-ring w-full rounded-lg border py-2 pl-9 pr-3 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2"
+            className="bg-background focus:ring-ring placeholder:text-muted-foreground w-full rounded-lg border py-2 pl-9 pr-3 text-sm focus:outline-none focus:ring-2"
           />
         </div>
 
@@ -111,10 +111,10 @@ export function FindingList({ findings, onStatusChange }: FindingListProps) {
         {hasActiveFilters && (
           <button
             onClick={() => {
-              setSearch("");
-              setSeverityFilter("");
-              setStatusFilter("");
-              setPluginFilter("");
+              setSearch('');
+              setSeverityFilter('');
+              setStatusFilter('');
+              setPluginFilter('');
             }}
             className="text-muted-foreground hover:text-foreground inline-flex items-center gap-1 text-xs transition-colors"
           >
@@ -130,18 +130,14 @@ export function FindingList({ findings, onStatusChange }: FindingListProps) {
           <Search className="text-muted-foreground mx-auto mb-3 h-8 w-8" />
           <p className="text-muted-foreground text-sm">
             {hasActiveFilters
-              ? "No findings match your filters. Try adjusting or clearing them."
-              : "No findings detected for this audit."}
+              ? 'No findings match your filters. Try adjusting or clearing them.'
+              : 'No findings detected for this audit.'}
           </p>
         </div>
       ) : (
         <div className="space-y-3">
           {filteredFindings.map((finding) => (
-            <FindingCard
-              key={finding.id}
-              finding={finding}
-              onStatusChange={onStatusChange}
-            />
+            <FindingCard key={finding.id} finding={finding} onStatusChange={onStatusChange} />
           ))}
         </div>
       )}

@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 import {
   AlertCircle,
@@ -10,15 +10,15 @@ import {
   MessageSquare,
   Shield,
   XCircle,
-} from "lucide-react";
-import Link from "next/link";
-import { useParams } from "next/navigation";
-import { useCallback, useEffect, useState } from "react";
+} from 'lucide-react';
+import Link from 'next/link';
+import { useParams } from 'next/navigation';
+import { useCallback, useEffect, useState } from 'react';
 
-import type { Finding } from "@/components/audits/finding-card";
-import { FindingList } from "@/components/audits/finding-list";
-import { SeverityChart } from "@/components/audits/severity-chart";
-import { apiGet, apiPatch } from "@/lib/api-helpers";
+import type { Finding } from '@/components/audits/finding-card';
+import { FindingList } from '@/components/audits/finding-list';
+import { SeverityChart } from '@/components/audits/severity-chart';
+import { apiGet, apiPatch } from '@/lib/api-helpers';
 
 interface AuditData {
   id: string;
@@ -46,14 +46,14 @@ const statusIcon: Record<string, React.ElementType> = {
 };
 
 const statusColor: Record<string, string> = {
-  COMPLETED: "text-emerald-500",
-  VERIFIED: "text-violet-500",
-  SCANNING: "text-blue-500",
-  FAILED: "text-red-500",
-  PENDING: "text-amber-500",
+  COMPLETED: 'text-emerald-500',
+  VERIFIED: 'text-violet-500',
+  SCANNING: 'text-blue-500',
+  FAILED: 'text-red-500',
+  PENDING: 'text-amber-500',
 };
 
-const SEVERITY_ORDER = ["CRITICAL", "HIGH", "MEDIUM", "LOW", "GAS", "INFORMATIONAL"];
+const SEVERITY_ORDER = ['CRITICAL', 'HIGH', 'MEDIUM', 'LOW', 'GAS', 'INFORMATIONAL'];
 
 export default function AuditDetailPage() {
   const params = useParams();
@@ -67,15 +67,13 @@ export default function AuditDetailPage() {
     setLoading(true);
     setError(null);
     try {
-      const json = await apiGet<{ success: boolean; data: AuditData }>(
-        `/api/v1/audits/${auditId}`,
-      );
+      const json = await apiGet<{ success: boolean; data: AuditData }>(`/api/v1/audits/${auditId}`);
       if (!json.success || !json.data) {
-        throw new Error("Failed to load audit");
+        throw new Error('Failed to load audit');
       }
       setAudit(json.data);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load audit");
+      setError(err instanceof Error ? err.message : 'Failed to load audit');
     } finally {
       setLoading(false);
     }
@@ -92,9 +90,7 @@ export default function AuditDetailPage() {
       // Optimistic update
       setAudit({
         ...audit,
-        findings: audit.findings.map((f) =>
-          f.id === findingId ? { ...f, status: newStatus } : f,
-        ),
+        findings: audit.findings.map((f) => (f.id === findingId ? { ...f, status: newStatus } : f)),
       });
 
       try {
@@ -102,7 +98,7 @@ export default function AuditDetailPage() {
           status: newStatus,
         });
       } catch (err) {
-        console.error("Failed to update finding status:", err);
+        console.error('Failed to update finding status:', err);
         // Revert on failure
         void fetchAudit();
       }
@@ -134,9 +130,7 @@ export default function AuditDetailPage() {
         <AlertCircle className="text-destructive h-10 w-10" />
         <div className="text-center">
           <h2 className="text-lg font-semibold">Failed to Load Audit</h2>
-          <p className="text-muted-foreground mt-1 text-sm">
-            {error ?? "Audit not found"}
-          </p>
+          <p className="text-muted-foreground mt-1 text-sm">{error ?? 'Audit not found'}</p>
         </div>
         <div className="flex gap-3">
           <Link
@@ -173,7 +167,7 @@ export default function AuditDetailPage() {
       ? formatDuration(audit.startedAt, audit.completedAt)
       : null;
 
-  const completedDate = audit.completedAt?.split("T")[0] ?? null;
+  const completedDate = audit.completedAt?.split('T')[0] ?? null;
 
   return (
     <div className="space-y-6">
@@ -188,10 +182,7 @@ export default function AuditDetailPage() {
         <div className="flex-1">
           <h1 className="text-2xl font-bold tracking-tight">Audit Detail</h1>
           <p className="text-muted-foreground mt-1">
-            <Link
-              href={`/dashboard/projects/${audit.project.id}`}
-              className="hover:text-primary"
-            >
+            <Link href={`/dashboard/projects/${audit.project.id}`} className="hover:text-primary">
               {audit.project.name}
             </Link>
           </p>
@@ -213,46 +204,41 @@ export default function AuditDetailPage() {
       <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-5">
         {[
           {
-            label: "Security Score",
-            value: audit.securityScore !== null ? `${audit.securityScore}/100` : "—",
+            label: 'Security Score',
+            value: audit.securityScore !== null ? `${audit.securityScore}/100` : '—',
             color:
               audit.securityScore !== null
                 ? audit.securityScore >= 80
-                  ? "text-emerald-500"
+                  ? 'text-emerald-500'
                   : audit.securityScore >= 50
-                    ? "text-amber-500"
-                    : "text-red-500"
-                : "text-muted-foreground",
+                    ? 'text-amber-500'
+                    : 'text-red-500'
+                : 'text-muted-foreground',
           },
           {
-            label: "Status",
+            label: 'Status',
             value: audit.status,
-            color: statusColor[audit.status] ?? "",
+            color: statusColor[audit.status] ?? '',
             icon: StatusIcon,
           },
           {
-            label: "Findings",
+            label: 'Findings',
             value: audit.findings.length,
-            color: "text-violet-500",
+            color: 'text-violet-500',
           },
           {
-            label: "Duration",
-            value: duration ?? "—",
-            color: "text-blue-500",
+            label: 'Duration',
+            value: duration ?? '—',
+            color: 'text-blue-500',
           },
           {
-            label: "Completed",
-            value: completedDate ?? "—",
-            color: "text-muted-foreground",
+            label: 'Completed',
+            value: completedDate ?? '—',
+            color: 'text-muted-foreground',
           },
         ].map((stat) => (
-          <div
-            key={stat.label}
-            className="bg-card rounded-xl border p-4 shadow-sm"
-          >
-            <p className="text-muted-foreground text-xs font-medium">
-              {stat.label}
-            </p>
+          <div key={stat.label} className="bg-card rounded-xl border p-4 shadow-sm">
+            <p className="text-muted-foreground text-xs font-medium">{stat.label}</p>
             <p className={`mt-1 text-2xl font-bold ${stat.color}`}>
               {stat.icon && <stat.icon className="mr-1 inline h-5 w-5" />}
               {stat.value}
@@ -266,28 +252,23 @@ export default function AuditDetailPage() {
         {/* Findings with filters */}
         <div className="lg:col-span-3">
           <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-            <h2 className="text-xl font-bold">
-              Findings ({audit.findings.length})
-            </h2>
+            <h2 className="text-xl font-bold">Findings ({audit.findings.length})</h2>
             <div className="flex flex-wrap gap-1.5">
               {Object.entries(severityCounts)
-                .sort(
-                  (a, b) =>
-                    SEVERITY_ORDER.indexOf(a[0]) - SEVERITY_ORDER.indexOf(b[0]),
-                )
+                .sort((a, b) => SEVERITY_ORDER.indexOf(a[0]) - SEVERITY_ORDER.indexOf(b[0]))
                 .map(([severity, count]) => {
                   const severityBadgeColors: Record<string, string> = {
-                    CRITICAL: "bg-red-500/10 text-red-500",
-                    HIGH: "bg-orange-500/10 text-orange-500",
-                    MEDIUM: "bg-yellow-500/10 text-yellow-500",
-                    LOW: "bg-green-500/10 text-green-500",
-                    GAS: "bg-blue-500/10 text-blue-500",
-                    INFORMATIONAL: "bg-muted text-muted-foreground",
+                    CRITICAL: 'bg-red-500/10 text-red-500',
+                    HIGH: 'bg-orange-500/10 text-orange-500',
+                    MEDIUM: 'bg-yellow-500/10 text-yellow-500',
+                    LOW: 'bg-green-500/10 text-green-500',
+                    GAS: 'bg-blue-500/10 text-blue-500',
+                    INFORMATIONAL: 'bg-muted text-muted-foreground',
                   };
                   return (
                     <span
                       key={severity}
-                      className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium ${severityBadgeColors[severity] ?? ""}`}
+                      className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium ${severityBadgeColors[severity] ?? ''}`}
                     >
                       {severity} {count}
                     </span>
@@ -315,32 +296,24 @@ export default function AuditDetailPage() {
               {audit.commitHash && (
                 <div className="flex items-center justify-between">
                   <span className="text-muted-foreground">Commit</span>
-                  <span className="font-mono text-xs">
-                    {audit.commitHash.slice(0, 10)}...
-                  </span>
+                  <span className="font-mono text-xs">{audit.commitHash.slice(0, 10)}...</span>
                 </div>
               )}
               {audit.reportHash && (
                 <div className="flex items-center justify-between">
                   <span className="text-muted-foreground">Report Hash</span>
-                  <span className="font-mono text-xs">
-                    {audit.reportHash.slice(0, 10)}...
-                  </span>
+                  <span className="font-mono text-xs">{audit.reportHash.slice(0, 10)}...</span>
                 </div>
               )}
               {audit.transactionHash && (
                 <div className="flex items-center justify-between">
                   <span className="text-muted-foreground">Tx Hash</span>
-                  <span className="font-mono text-xs">
-                    {audit.transactionHash.slice(0, 10)}...
-                  </span>
+                  <span className="font-mono text-xs">{audit.transactionHash.slice(0, 10)}...</span>
                 </div>
               )}
               <div className="flex items-center justify-between">
                 <span className="text-muted-foreground">Created</span>
-                <span className="text-xs">
-                  {new Date(audit.createdAt).toLocaleDateString()}
-                </span>
+                <span className="text-xs">{new Date(audit.createdAt).toLocaleDateString()}</span>
               </div>
             </div>
           </div>
@@ -383,7 +356,7 @@ function formatDuration(start: string, end: string): string {
   const diffMs = endDate.getTime() - startDate.getTime();
   const mins = Math.floor(diffMs / 60000);
 
-  if (mins < 1) return "<1 min";
+  if (mins < 1) return '<1 min';
   if (mins < 60) return `${mins} min`;
   const hours = Math.floor(mins / 60);
   const remainingMins = mins % 60;

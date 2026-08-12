@@ -1,18 +1,18 @@
 export function getAuthToken(): string | null {
-  if (typeof window === "undefined") return null;
-  return localStorage.getItem("accessToken");
+  if (typeof window === 'undefined') return null;
+  return localStorage.getItem('accessToken');
 }
 
 export function getApiBaseUrl(): string {
-  if (typeof window === "undefined") return "http://localhost:4000";
-  return process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000";
+  if (typeof window === 'undefined') return 'http://localhost:4000';
+  return process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
 }
 
 export async function apiGet<T>(path: string): Promise<T> {
   const token = getAuthToken();
   const res = await fetch(`${getApiBaseUrl()}${path}`, {
     headers: {
-      "Content-Type": "application/json",
+      'Content-Type': 'application/json',
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
     },
   });
@@ -28,9 +28,9 @@ export async function apiGet<T>(path: string): Promise<T> {
 export async function apiPost<T>(path: string, body?: unknown): Promise<T> {
   const token = getAuthToken();
   const res = await fetch(`${getApiBaseUrl()}${path}`, {
-    method: "POST",
+    method: 'POST',
     headers: {
-      "Content-Type": "application/json",
+      'Content-Type': 'application/json',
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
     },
     body: body ? JSON.stringify(body) : undefined,
@@ -47,9 +47,9 @@ export async function apiPost<T>(path: string, body?: unknown): Promise<T> {
 export async function apiPatch<T>(path: string, body?: unknown): Promise<T> {
   const token = getAuthToken();
   const res = await fetch(`${getApiBaseUrl()}${path}`, {
-    method: "PATCH",
+    method: 'PATCH',
     headers: {
-      "Content-Type": "application/json",
+      'Content-Type': 'application/json',
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
     },
     body: body ? JSON.stringify(body) : undefined,
@@ -66,7 +66,7 @@ export async function apiPatch<T>(path: string, body?: unknown): Promise<T> {
 export async function apiDelete(path: string): Promise<void> {
   const token = getAuthToken();
   await fetch(`${getApiBaseUrl()}${path}`, {
-    method: "DELETE",
+    method: 'DELETE',
     headers: {
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
     },

@@ -1,18 +1,10 @@
-"use client";
+'use client';
 
-import {
-  AlertCircle,
-  CheckCircle2,
-  Clock,
-  Loader2,
-  Search,
-  Shield,
-  XCircle,
-} from "lucide-react";
-import Link from "next/link";
-import { useEffect, useState } from "react";
+import { AlertCircle, CheckCircle2, Clock, Loader2, Search, Shield, XCircle } from 'lucide-react';
+import Link from 'next/link';
+import { useEffect, useState } from 'react';
 
-import { apiGet } from "@/lib/api-helpers";
+import { apiGet } from '@/lib/api-helpers';
 
 interface AuditItem {
   id: string;
@@ -51,34 +43,32 @@ const statusIcon: Record<string, React.ElementType> = {
 };
 
 const statusColor: Record<string, string> = {
-  COMPLETED: "text-emerald-500",
-  SCANNING: "text-blue-500",
-  VERIFIED: "text-violet-500",
-  FAILED: "text-red-500",
-  PENDING: "text-amber-500",
+  COMPLETED: 'text-emerald-500',
+  SCANNING: 'text-blue-500',
+  VERIFIED: 'text-violet-500',
+  FAILED: 'text-red-500',
+  PENDING: 'text-amber-500',
 };
 
 export default function AuditsPage() {
   const [audits, setAudits] = useState<AuditItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState("");
+  const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
 
   useEffect(() => {
     async function fetchAudits() {
       try {
-        const params = new URLSearchParams({ limit: "50", sortOrder: "desc" });
-        if (statusFilter) params.set("status", statusFilter);
+        const params = new URLSearchParams({ limit: '50', sortOrder: 'desc' });
+        if (statusFilter) params.set('status', statusFilter);
 
-        const json = await apiGet<ApiResponse>(
-          `/api/v1/audits?${params.toString()}`,
-        );
+        const json = await apiGet<ApiResponse>(`/api/v1/audits?${params.toString()}`);
         if (json.success && json.data) {
           setAudits(json.data.data);
         }
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to load audits");
+        setError(err instanceof Error ? err.message : 'Failed to load audits');
       } finally {
         setLoading(false);
       }
@@ -120,21 +110,19 @@ export default function AuditsPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold tracking-tight">Audit History</h1>
-        <p className="text-muted-foreground mt-1">
-          Review past audits and their findings.
-        </p>
+        <p className="text-muted-foreground mt-1">Review past audits and their findings.</p>
       </div>
 
       {/* Filters */}
       <div className="flex flex-wrap items-center gap-3">
-        <div className="relative flex-1 min-w-[200px] max-w-xs">
+        <div className="relative min-w-[200px] max-w-xs flex-1">
           <Search className="text-muted-foreground absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2" />
           <input
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search audits..."
-            className="bg-background focus:ring-ring w-full rounded-lg border py-2 pl-9 pr-3 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2"
+            className="bg-background focus:ring-ring placeholder:text-muted-foreground w-full rounded-lg border py-2 pl-9 pr-3 text-sm focus:outline-none focus:ring-2"
           />
         </div>
         <select
@@ -157,8 +145,8 @@ export default function AuditsPage() {
           <Search className="text-muted-foreground mx-auto mb-3 h-8 w-8" />
           <p className="text-muted-foreground text-sm">
             {audits.length === 0
-              ? "No audits yet. Run your first audit to get started."
-              : "No audits match your search."}
+              ? 'No audits yet. Run your first audit to get started.'
+              : 'No audits match your search.'}
           </p>
         </div>
       ) : (
@@ -177,8 +165,7 @@ export default function AuditsPage() {
               <tbody className="divide-y">
                 {filteredAudits.map((audit) => {
                   const Icon = statusIcon[audit.status] ?? Clock;
-                  const color =
-                    statusColor[audit.status] ?? "text-muted-foreground";
+                  const color = statusColor[audit.status] ?? 'text-muted-foreground';
                   return (
                     <tr key={audit.id}>
                       <td className="py-3 pl-6">
@@ -190,23 +177,17 @@ export default function AuditsPage() {
                         </Link>
                       </td>
                       <td className="py-3">
-                        <span
-                          className={`inline-flex items-center gap-1 text-sm ${color}`}
-                        >
+                        <span className={`inline-flex items-center gap-1 text-sm ${color}`}>
                           <Icon className="h-3.5 w-3.5" /> {audit.status}
                         </span>
                       </td>
                       <td className="py-3">
                         <span className="text-sm">
-                          {audit.securityScore !== null
-                            ? `${audit.securityScore}/100`
-                            : "—"}
+                          {audit.securityScore !== null ? `${audit.securityScore}/100` : '—'}
                         </span>
                       </td>
                       <td className="py-3">
-                        <span className="text-sm">
-                          {audit._count?.findings ?? "—"}
-                        </span>
+                        <span className="text-sm">{audit._count?.findings ?? '—'}</span>
                       </td>
                       <td className="text-muted-foreground py-3 pr-6 text-sm">
                         {new Date(audit.createdAt).toLocaleDateString()}
@@ -222,5 +203,3 @@ export default function AuditsPage() {
     </div>
   );
 }
-
-

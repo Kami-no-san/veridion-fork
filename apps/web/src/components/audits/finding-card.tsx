@@ -1,12 +1,7 @@
-"use client";
+'use client';
 
-import {
-  ChevronDown,
-  ExternalLink,
-  FileCode,
-  MessageSquare,
-} from "lucide-react";
-import { useState } from "react";
+import { ChevronDown, ExternalLink, FileCode, MessageSquare } from 'lucide-react';
+import { useState } from 'react';
 
 export interface Finding {
   id: string;
@@ -30,34 +25,42 @@ interface FindingCardProps {
   onStatusChange: (findingId: string, newStatus: string) => void;
 }
 
-export const severityConfig: Record<string, { color: string; bg: string; border: string } | undefined> = {
-  CRITICAL: { color: "text-red-500", bg: "bg-red-500/10", border: "border-l-red-500" },
-  HIGH: { color: "text-orange-500", bg: "bg-orange-500/10", border: "border-l-orange-500" },
-  MEDIUM: { color: "text-yellow-500", bg: "bg-yellow-500/10", border: "border-l-yellow-500" },
-  LOW: { color: "text-green-500", bg: "bg-green-500/10", border: "border-l-green-500" },
-  GAS: { color: "text-blue-500", bg: "bg-blue-500/10", border: "border-l-blue-500" },
-  INFORMATIONAL: { color: "text-muted-foreground", bg: "bg-muted", border: "border-l-muted-foreground" },
+export const severityConfig: Record<
+  string,
+  { color: string; bg: string; border: string } | undefined
+> = {
+  CRITICAL: { color: 'text-red-500', bg: 'bg-red-500/10', border: 'border-l-red-500' },
+  HIGH: { color: 'text-orange-500', bg: 'bg-orange-500/10', border: 'border-l-orange-500' },
+  MEDIUM: { color: 'text-yellow-500', bg: 'bg-yellow-500/10', border: 'border-l-yellow-500' },
+  LOW: { color: 'text-green-500', bg: 'bg-green-500/10', border: 'border-l-green-500' },
+  GAS: { color: 'text-blue-500', bg: 'bg-blue-500/10', border: 'border-l-blue-500' },
+  INFORMATIONAL: {
+    color: 'text-muted-foreground',
+    bg: 'bg-muted',
+    border: 'border-l-muted-foreground',
+  },
 };
 
 const statusOptions = [
-  { value: "OPEN", label: "Open" },
-  { value: "ACKNOWLEDGED", label: "Acknowledged" },
-  { value: "FALSE_POSITIVE", label: "False Positive" },
-  { value: "RESOLVED", label: "Resolved" },
+  { value: 'OPEN', label: 'Open' },
+  { value: 'ACKNOWLEDGED', label: 'Acknowledged' },
+  { value: 'FALSE_POSITIVE', label: 'False Positive' },
+  { value: 'RESOLVED', label: 'Resolved' },
 ];
 
 export function FindingCard({ finding, onStatusChange }: FindingCardProps) {
   const [expanded, setExpanded] = useState(false);
   const defaultConfig: { color: string; bg: string; border: string } = {
-    color: "text-muted-foreground",
-    bg: "bg-muted",
-    border: "border-l-muted-foreground",
+    color: 'text-muted-foreground',
+    bg: 'bg-muted',
+    border: 'border-l-muted-foreground',
   };
   const config = severityConfig[finding.severity] ?? defaultConfig;
 
   return (
     <div
-      className={`bg-card rounded-xl border shadow-sm border-l-4 ${config.border}`}
+      id={`finding-${finding.id}`}
+      className={`bg-card rounded-xl border border-l-4 shadow-sm ${config.border}`}
     >
       {/* Header */}
       <button
@@ -71,7 +74,7 @@ export function FindingCard({ finding, onStatusChange }: FindingCardProps) {
             >
               {finding.severity}
             </span>
-            <span className="text-muted-foreground text-xs font-mono">
+            <span className="text-muted-foreground font-mono text-xs">
               {finding.filePath}:{finding.lineStart}-{finding.lineEnd}
             </span>
             <span className="text-muted-foreground text-xs">
@@ -90,14 +93,14 @@ export function FindingCard({ finding, onStatusChange }: FindingCardProps) {
               onStatusChange(finding.id, e.target.value);
             }}
             onClick={(e) => e.stopPropagation()}
-            className={`rounded-full border px-2.5 py-0.5 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-primary ${
-              finding.status === "OPEN"
-                ? "border-red-500/30 bg-red-500/10 text-red-500"
-                : finding.status === "ACKNOWLEDGED"
-                  ? "border-amber-500/30 bg-amber-500/10 text-amber-500"
-                  : finding.status === "RESOLVED"
-                    ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-500"
-                    : "border-muted bg-muted text-muted-foreground"
+            className={`focus:ring-primary rounded-full border px-2.5 py-0.5 text-xs font-medium focus:outline-none focus:ring-2 ${
+              finding.status === 'OPEN'
+                ? 'border-red-500/30 bg-red-500/10 text-red-500'
+                : finding.status === 'ACKNOWLEDGED'
+                  ? 'border-amber-500/30 bg-amber-500/10 text-amber-500'
+                  : finding.status === 'RESOLVED'
+                    ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-500'
+                    : 'border-muted bg-muted text-muted-foreground'
             }`}
           >
             {statusOptions.map((opt) => (
@@ -109,7 +112,7 @@ export function FindingCard({ finding, onStatusChange }: FindingCardProps) {
 
           <ChevronDown
             className={`text-muted-foreground h-4 w-4 transition-transform ${
-              expanded ? "rotate-180" : ""
+              expanded ? 'rotate-180' : ''
             }`}
           />
         </div>

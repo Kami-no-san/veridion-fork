@@ -1,4 +1,9 @@
-import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { logger } from '@veridion/logger';
 
 import { CacheService } from '../../common/cache/cache.service';
@@ -110,9 +115,7 @@ export class AuditsService {
   async updateFindingStatus(findingId: string, status: string, userId: string) {
     const validStatuses = ['OPEN', 'ACKNOWLEDGED', 'FALSE_POSITIVE', 'RESOLVED'];
     if (!validStatuses.includes(status)) {
-      throw new BadRequestException(
-        `Invalid status. Must be one of: ${validStatuses.join(', ')}`,
-      );
+      throw new BadRequestException(`Invalid status. Must be one of: ${validStatuses.join(', ')}`);
     }
 
     const finding = await this.prisma.db.auditFinding.findUnique({
