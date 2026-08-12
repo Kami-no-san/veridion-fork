@@ -21,17 +21,13 @@ const aiEngineFactory = {
       if (!anthropicKey) {
         logger.warn('ANTHROPIC_API_KEY not set — AI chat will fail');
       }
-      return new AiEngineService(
-        new AnthropicProvider(anthropicKey ?? '', model),
-      );
+      return new AiEngineService(new AnthropicProvider(anthropicKey ?? '', model));
     }
 
     if (!openAiKey) {
       logger.warn('OPENAI_API_KEY not set — AI chat will fail');
     }
-    return new AiEngineService(
-      new OpenAiProvider(openAiKey ?? '', model),
-    );
+    return new AiEngineService(new OpenAiProvider(openAiKey ?? '', model));
   },
 };
 

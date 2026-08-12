@@ -23,10 +23,7 @@ export class AiController {
 
   @Delete('conversation/:auditId')
   @ApiOperation({ summary: 'Clear conversation history for an audit' })
-  clearConversation(
-    @Param('auditId') auditId: string,
-    @CurrentUser('id') userId: string,
-  ) {
+  clearConversation(@Param('auditId') auditId: string, @CurrentUser('id') userId: string) {
     this.aiService.clearConversation(userId, auditId);
     return { success: true };
   }

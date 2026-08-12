@@ -1,8 +1,11 @@
-import { InternalServerErrorException, NotFoundException } from '@nestjs/common';
+import {
+  ForbiddenException,
+  InternalServerErrorException,
+  NotFoundException,
+} from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';
-
-import type { AiChatMessage } from '@veridion/shared';
 import { AiService as AiEngineService } from '@veridion/ai-engine';
+import type { AiChatMessage } from '@veridion/shared';
 
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { AiService } from './ai.service';
@@ -39,6 +42,7 @@ const mockAudit = {
   id: 'audit-1',
   status: 'COMPLETED',
   securityScore: 75,
+  project: { userId: 'user-1' },
   findings: mockFindings,
 };
 
@@ -90,9 +94,13 @@ describe('AiService', () => {
   it('should throw NotFoundException when audit does not exist', async () => {
     mockPrisma.db.audit.findUnique.mockResolvedValue(null);
 
-    await expect(service.chat('user-1', chatDto)).rejects.toThrow(
-      NotFoundException,
-    );
+    await expect(service.chat('user-1', chatDto)).rejects.toThrow(NotFoundException);
+  });
+
+  it('should throw ForbiddenException when the audit belongs to another user', async () => {
+    mockPrisma.db.audit.findUnique.mockResolvedValue(mockAudit);
+
+    await expect(service.chat('user-2', chatDto)).rejects.toThrow(ForbiddenException);
   });
 
   it('should return AI response with citations', async () => {
@@ -132,7 +140,7 @@ describe('AiService', () => {
     await service.chat('user-1', { ...chatDto, message: 'Tell me more' });
 
     // The second call should include previous messages
-    const secondCallMessages = mockAiEngine.chat.mock.calls[1]![0] as AiChatMessage[];
+    const secondCallMessages = mockAiEngine.chat.mock.calls[1]?.[0] ?? [];
     const userMessages = secondCallMessages.filter((m) => m.role === 'user');
     expect(userMessages).toHaveLength(2);
   });
@@ -149,19 +157,17 @@ describe('AiService', () => {
       context: { findingId: 'finding-1' },
     });
 
-    const messages = mockAiEngine.chat.mock.calls[0]![0] as AiChatMessage[];
-    const userMsg = messages.find((m) => m.role === 'user')!;
-    expect(userMsg.content).toContain('Reentrancy Vulnerability');
-    expect(userMsg.content).toContain('Reentrancy Vulnerability');
+    const messages = mockAiEngine.chat.mock.calls[0]?.[0] ?? [];
+    const userMsg = messages.find((m) => m.role === 'user');
+    expect(userMsg?.content).toContain('Reentrancy Vulnerability');
+    expect(userMsg?.content).toContain('Reentrancy Vulnerability');
   });
 
   it('should throw InternalServerErrorException when AI engine fails', async () => {
     mockPrisma.db.audit.findUnique.mockResolvedValue(mockAudit);
     mockAiEngine.chat.mockRejectedValue(new Error('API rate limit exceeded'));
 
-    await expect(service.chat('user-1', chatDto)).rejects.toThrow(
-      InternalServerErrorException,
-    );
+    await expect(service.chat('user-1', chatDto)).rejects.toThrow(InternalServerErrorException);
   });
 
   it('should clear conversation', async () => {
@@ -177,7 +183,7 @@ describe('AiService', () => {
     // Next message should start fresh
     await service.chat('user-1', { ...chatDto, message: 'New question' });
 
-    const messages = mockAiEngine.chat.mock.calls[1]![0] as AiChatMessage[];
+    const messages = mockAiEngine.chat.mock.calls[1]?.[0] ?? [];
     const userMessages = messages.filter((m) => m.role === 'user');
     expect(userMessages).toHaveLength(1);
   });

@@ -1,7 +1,7 @@
-"use client";
+'use client';
 
-import { Send } from "lucide-react";
-import { useEffect,useRef, useState } from "react";
+import { Send } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
 
 interface ChatInputProps {
   onSend: (message: string) => void;
@@ -12,9 +12,9 @@ interface ChatInputProps {
 export function ChatInput({
   onSend,
   loading,
-  placeholder = "Ask about vulnerabilities, fixes, or audit results...",
+  placeholder = 'Ask about vulnerabilities, fixes, or audit results...',
 }: ChatInputProps) {
-  const [input, setInput] = useState("");
+  const [input, setInput] = useState('');
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   // Auto-resize textarea
@@ -22,7 +22,7 @@ export function ChatInput({
     const textarea = textareaRef.current;
     if (!textarea) return;
 
-    textarea.style.height = "auto";
+    textarea.style.height = 'auto';
     const scrollHeight = textarea.scrollHeight;
     textarea.style.height = `${Math.min(scrollHeight, 200)}px`;
   }, [input]);
@@ -31,11 +31,11 @@ export function ChatInput({
     const trimmed = input.trim();
     if (!trimmed || loading) return;
     onSend(trimmed);
-    setInput("");
+    setInput('');
   }
 
   function handleKeyDown(e: React.KeyboardEvent) {
-    if (e.key === "Enter" && !e.shiftKey) {
+    if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       handleSend();
     }

@@ -1,11 +1,11 @@
-"use client";
+'use client';
 
-import { AlertCircle, WifiOff } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
+import { AlertCircle, WifiOff } from 'lucide-react';
+import { useCallback, useEffect, useState } from 'react';
 
-import { type AuditOption,ChatContext } from "@/components/ai-chat/chat-context";
-import { ChatInput } from "@/components/ai-chat/chat-input";
-import { type ChatMessage,ChatMessages } from "@/components/ai-chat/chat-messages";
+import { type AuditOption, ChatContext } from '@/components/ai-chat/chat-context';
+import { ChatInput } from '@/components/ai-chat/chat-input';
+import { type ChatMessage, ChatMessages } from '@/components/ai-chat/chat-messages';
 
 interface Citation {
   findingId?: string;
@@ -27,7 +27,7 @@ export default function AiChatPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [audits, setAudits] = useState<AuditOption[]>([]);
-  const [selectedAuditId, setSelectedAuditId] = useState("");
+  const [selectedAuditId, setSelectedAuditId] = useState('');
   const [loadingAudits, setLoadingAudits] = useState(true);
 
   // Fetch available audits for context
@@ -40,15 +40,12 @@ export default function AiChatPage() {
           return;
         }
 
-        const res = await fetch(
-          `${getApiBaseUrl()}/api/v1/audits?limit=50&sortOrder=desc`,
-          {
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${token}`,
-            },
+        const res = await fetch(`${getApiBaseUrl()}/api/v1/audits?limit=50&sortOrder=desc`, {
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
           },
-        );
+        });
 
         if (!res.ok) {
           throw new Error(`Failed to fetch audits: ${res.status}`);
@@ -56,27 +53,32 @@ export default function AiChatPage() {
 
         const json = (await res.json()) as {
           success: boolean;
-          data?: { data?: Array<{ id: string; status: string; securityScore: number | null; project?: { name: string } }> };
+          data?: {
+            data?: Array<{
+              id: string;
+              status: string;
+              securityScore: number | null;
+              project?: { name: string };
+            }>;
+          };
         };
         if (json.success && json.data?.data) {
-          const auditOptions: AuditOption[] = json.data.data.map(
-            (audit) => ({
-              id: audit.id,
-              name: audit.project?.name ?? `Audit ${audit.id.slice(0, 8)}`,
-              status: audit.status,
-              securityScore: audit.securityScore,
-            }),
-          );
+          const auditOptions: AuditOption[] = json.data.data.map((audit) => ({
+            id: audit.id,
+            name: audit.project?.name ?? `Audit ${audit.id.slice(0, 8)}`,
+            status: audit.status,
+            securityScore: audit.securityScore,
+          }));
           setAudits(auditOptions);
 
           // Auto-select the most recent completed audit
-          const completed = auditOptions.find((a) => a.status === "COMPLETED");
+          const completed = auditOptions.find((a) => a.status === 'COMPLETED');
           if (completed) {
             setSelectedAuditId(completed.id);
             setMessages([
               {
-                id: "welcome",
-                role: "assistant",
+                id: 'welcome',
+                role: 'assistant',
                 content: `I'm ready to help you analyze the "${completed.name}" audit. Ask me about its findings, how to fix vulnerabilities, or anything about smart contract security.`,
                 timestamp: new Date(),
               },
@@ -87,8 +89,8 @@ export default function AiChatPage() {
             setSelectedAuditId(first.id);
             setMessages([
               {
-                id: "welcome",
-                role: "assistant",
+                id: 'welcome',
+                role: 'assistant',
                 content: `I'm your Veridion AI security assistant. I see you have the "${first.name}" audit (${first.status}). Ask me anything about smart contract security!`,
                 timestamp: new Date(),
               },
@@ -96,7 +98,7 @@ export default function AiChatPage() {
           }
         }
       } catch (err) {
-        console.error("Failed to fetch audits:", err);
+        console.error('Failed to fetch audits:', err);
       } finally {
         setLoadingAudits(false);
       }
@@ -118,8 +120,8 @@ export default function AiChatPage() {
         setMessages([
           {
             id: `switch-${Date.now()}`,
-            role: "assistant",
-            content: `Switched to audit: **${audit.name}** (${audit.status}${audit.securityScore !== null ? ` · Score: ${audit.securityScore}/100` : ""}). How can I help you with this audit?`,
+            role: 'assistant',
+            content: `Switched to audit: **${audit.name}** (${audit.status}${audit.securityScore !== null ? ` · Score: ${audit.securityScore}/100` : ''}). How can I help you with this audit?`,
             timestamp: new Date(),
           },
         ]);
@@ -134,13 +136,10 @@ export default function AiChatPage() {
     try {
       const token = getAuthToken();
       if (token) {
-        await fetch(
-          `${getApiBaseUrl()}/api/v1/ai/conversation/${selectedAuditId}`,
-          {
-            method: "DELETE",
-            headers: { Authorization: `Bearer ${token}` },
-          },
-        );
+        await fetch(`${getApiBaseUrl()}/api/v1/ai/conversation/${selectedAuditId}`, {
+          method: 'DELETE',
+          headers: { Authorization: `Bearer ${token}` },
+        });
       }
     } catch {
       // Silent fail — clear locally even if API call fails
@@ -149,8 +148,8 @@ export default function AiChatPage() {
     setMessages([
       {
         id: `new-${Date.now()}`,
-        role: "assistant",
-        content: "Starting a new conversation. How can I help you with this audit?",
+        role: 'assistant',
+        content: 'Starting a new conversation. How can I help you with this audit?',
         timestamp: new Date(),
       },
     ]);
@@ -160,13 +159,13 @@ export default function AiChatPage() {
   async function sendMessage(content: string) {
     if (!content.trim() || loading) return;
     if (!selectedAuditId) {
-      setError("Please select an audit to start chatting.");
+      setError('Please select an audit to start chatting.');
       return;
     }
 
     const userMsg: ChatMessage = {
       id: Date.now().toString(),
-      role: "user",
+      role: 'user',
       content,
       timestamp: new Date(),
     };
@@ -178,13 +177,13 @@ export default function AiChatPage() {
     try {
       const token = getAuthToken();
       if (!token) {
-        throw new Error("Authentication required. Please log in.");
+        throw new Error('Authentication required. Please log in.');
       }
 
       const res = await fetch(`${getApiBaseUrl()}/api/v1/ai/chat`, {
-        method: "POST",
+        method: 'POST',
         headers: {
-          "Content-Type": "application/json",
+          'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
@@ -195,20 +194,18 @@ export default function AiChatPage() {
 
       if (!res.ok) {
         const errorData = (await res.json().catch(() => null)) as { message?: string };
-        throw new Error(
-          errorData?.message ?? `Request failed with status ${res.status}`,
-        );
+        throw new Error(errorData?.message ?? `Request failed with status ${res.status}`);
       }
 
       const json = (await res.json()) as ApiChatResponse;
 
       if (!json.success || !json.data) {
-        throw new Error(json.message ?? "Unexpected API response");
+        throw new Error(json.message ?? 'Unexpected API response');
       }
 
       const aiMsg: ChatMessage = {
         id: (Date.now() + 1).toString(),
-        role: "assistant",
+        role: 'assistant',
         content: json.data.message,
         citations: json.data.citations,
         timestamp: new Date(),
@@ -216,13 +213,12 @@ export default function AiChatPage() {
 
       setMessages((prev) => [...prev, aiMsg]);
     } catch (err) {
-      const errorMessage =
-        err instanceof Error ? err.message : "Failed to get AI response";
+      const errorMessage = err instanceof Error ? err.message : 'Failed to get AI response';
       setError(errorMessage);
 
       const errorMsg: ChatMessage = {
         id: (Date.now() + 2).toString(),
-        role: "assistant",
+        role: 'assistant',
         content: `⚠️ ${errorMessage}`,
         timestamp: new Date(),
       };
@@ -238,8 +234,7 @@ export default function AiChatPage() {
         <div>
           <h1 className="text-3xl font-bold tracking-tight">AI Chat</h1>
           <p className="text-muted-foreground mt-1">
-            Ask questions about your audits, vulnerabilities, and security best
-            practices.
+            Ask questions about your audits, vulnerabilities, and security best practices.
           </p>
         </div>
 
@@ -260,8 +255,7 @@ export default function AiChatPage() {
               <WifiOff className="text-muted-foreground mb-3 h-10 w-10" />
               <h3 className="text-lg font-semibold">No Audit Selected</h3>
               <p className="text-muted-foreground mt-1 text-sm">
-                Select an audit from the sidebar to start a conversation with
-                the AI assistant.
+                Select an audit from the sidebar to start a conversation with the AI assistant.
               </p>
             </div>
           )}
@@ -273,8 +267,8 @@ export default function AiChatPage() {
             loading={loading}
             placeholder={
               selectedAuditId
-                ? "Ask about vulnerabilities, fixes, or audit results..."
-                : "Select an audit to start chatting..."
+                ? 'Ask about vulnerabilities, fixes, or audit results...'
+                : 'Select an audit to start chatting...'
             }
           />
         </div>
@@ -296,11 +290,11 @@ export default function AiChatPage() {
 // ---- Helpers ----
 
 function getAuthToken(): string | null {
-  if (typeof window === "undefined") return null;
-  return localStorage.getItem("accessToken");
+  if (typeof window === 'undefined') return null;
+  return localStorage.getItem('accessToken');
 }
 
 function getApiBaseUrl(): string {
-  if (typeof window === "undefined") return "http://localhost:4000";
-  return process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000";
+  if (typeof window === 'undefined') return 'http://localhost:4000';
+  return process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
 }

@@ -1,10 +1,10 @@
-"use client";
+'use client';
 
-import { Bot, ExternalLink,FileCode, User } from "lucide-react";
+import { Bot, ExternalLink, FileCode, User } from 'lucide-react';
 
 export interface ChatMessage {
   id: string;
-  role: "user" | "assistant";
+  role: 'user' | 'assistant';
   content: string;
   citations?: Citation[];
   timestamp: Date;
@@ -31,8 +31,8 @@ export function ChatMessages({ messages, loading }: ChatMessagesProps) {
           </div>
           <h3 className="text-lg font-semibold">AI Security Assistant</h3>
           <p className="text-muted-foreground mt-2 text-sm">
-            Select an audit and ask me anything about your smart contract
-            vulnerabilities, fixes, or security best practices.
+            Select an audit and ask me anything about your smart contract vulnerabilities, fixes, or
+            security best practices.
           </p>
         </div>
       </div>
@@ -42,33 +42,24 @@ export function ChatMessages({ messages, loading }: ChatMessagesProps) {
   return (
     <div className="flex-1 space-y-4 overflow-y-auto p-6">
       {messages.map((msg) => (
-        <div
-          key={msg.id}
-          className={`flex gap-3 ${msg.role === "user" ? "flex-row-reverse" : ""}`}
-        >
+        <div key={msg.id} className={`flex gap-3 ${msg.role === 'user' ? 'flex-row-reverse' : ''}`}>
           <div
             className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${
-              msg.role === "assistant"
-                ? "bg-primary/10 text-primary"
-                : "bg-muted text-muted-foreground"
+              msg.role === 'assistant'
+                ? 'bg-primary/10 text-primary'
+                : 'bg-muted text-muted-foreground'
             }`}
           >
-            {msg.role === "assistant" ? (
-              <Bot className="h-4 w-4" />
-            ) : (
-              <User className="h-4 w-4" />
-            )}
+            {msg.role === 'assistant' ? <Bot className="h-4 w-4" /> : <User className="h-4 w-4" />}
           </div>
           <div
             className={`max-w-[80%] rounded-xl px-4 py-3 text-sm leading-relaxed ${
-              msg.role === "assistant"
-                ? "bg-muted/50"
-                : "bg-primary text-primary-foreground"
+              msg.role === 'assistant' ? 'bg-muted/50' : 'bg-primary text-primary-foreground'
             }`}
           >
             <div className="whitespace-pre-wrap">
               {/* Render content with clickable finding citations */}
-              {msg.role === "assistant"
+              {msg.role === 'assistant'
                 ? renderContent(msg.content, msg.citations)
                 : renderContent(msg.content)}
             </div>
@@ -83,11 +74,8 @@ export function ChatMessages({ messages, loading }: ChatMessagesProps) {
                     className="bg-primary/10 text-primary hover:bg-primary/20 inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium transition-colors"
                   >
                     <FileCode className="h-3 w-3" />
-                    Finding{" "}
-                    {citation.findingId ? citation.findingId.slice(0, 8) : ""}
-                    {citation.lineStart && (
-                      <> :{citation.lineStart}</>
-                    )}
+                    Finding {citation.findingId ? citation.findingId.slice(0, 8) : ''}
+                    {citation.lineStart && <> :{citation.lineStart}</>}
                     <ExternalLink className="h-2.5 w-2.5" />
                   </a>
                 ))}
@@ -96,14 +84,12 @@ export function ChatMessages({ messages, loading }: ChatMessagesProps) {
 
             <p
               className={`mt-1 text-xs ${
-                msg.role === "assistant"
-                  ? "text-muted-foreground"
-                  : "text-primary-foreground/70"
+                msg.role === 'assistant' ? 'text-muted-foreground' : 'text-primary-foreground/70'
               }`}
             >
               {msg.timestamp.toLocaleTimeString([], {
-                hour: "2-digit",
-                minute: "2-digit",
+                hour: '2-digit',
+                minute: '2-digit',
               })}
             </p>
           </div>
@@ -137,10 +123,7 @@ export function ChatMessages({ messages, loading }: ChatMessagesProps) {
  * - Inline [Finding: ...] citations converted to styled badges
  * - Code blocks (```...```) rendered in styled pre/code elements
  */
-function renderContent(
-  content: string,
-  citations?: Citation[],
-): React.ReactNode {
+function renderContent(content: string, citations?: Citation[]): React.ReactNode {
   if (!citations || citations.length === 0) {
     return renderCodeBlocks(content);
   }
@@ -173,8 +156,8 @@ function renderCodeBlocks(text: string): React.ReactNode {
   return parts.map((part, i) => {
     const codeMatch = /```(\w*)\n?([\s\S]*?)```/g.exec(part);
     if (codeMatch) {
-      const lang = codeMatch[1] || "";
-      const code = codeMatch[2] || "";
+      const lang = codeMatch[1] || '';
+      const code = codeMatch[2] || '';
       return (
         <pre
           key={i}
@@ -185,7 +168,7 @@ function renderCodeBlocks(text: string): React.ReactNode {
               {lang}
             </div>
           )}
-          <code className={`text-foreground/90 ${lang ? `language-${lang}` : ""}`}>
+          <code className={`text-foreground/90 ${lang ? `language-${lang}` : ''}`}>
             {code.trim()}
           </code>
         </pre>

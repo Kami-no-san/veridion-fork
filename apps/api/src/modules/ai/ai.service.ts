@@ -1,7 +1,12 @@
-import { Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
-import type { AiChatMessage } from '@veridion/shared';
+import {
+  ForbiddenException,
+  Injectable,
+  InternalServerErrorException,
+  NotFoundException,
+} from '@nestjs/common';
 import { AiService as AiEngineService } from '@veridion/ai-engine';
 import { logger } from '@veridion/logger';
+import type { AiChatMessage } from '@veridion/shared';
 
 import { PrismaService } from '../../common/prisma/prisma.service';
 import type { AiChatDto } from './dto/ai.dto';
@@ -57,11 +62,19 @@ export class AiService {
         findings: {
           orderBy: { severity: 'asc' },
         },
+        project: {
+          select: { userId: true },
+        },
       },
     });
 
     if (!audit) {
       throw new NotFoundException(`Audit with ID ${dto.auditId} not found`);
+    }
+
+    // Ensure the audit belongs to the authenticated user.
+    if (audit.project.userId !== userId) {
+      throw new ForbiddenException('Access denied');
     }
 
     const conversationKey = `${userId}:${dto.auditId}`;
@@ -76,7 +89,8 @@ export class AiService {
     // Add the user message with optional context
     let userContent = dto.message;
     if (dto.context?.findingId) {
-      const finding = audit.findings.find((f) => f.id === dto.context!.findingId);
+      const { findingId } = dto.context;
+      const finding = audit.findings.find((f) => f.id === findingId);
       if (finding) {
         userContent = `[Context: User is asking about finding "${finding.title}" (${finding.severity}) in ${finding.filePath}:${finding.lineStart}-${finding.lineEnd}]\n\n${dto.message}`;
       }
@@ -89,16 +103,12 @@ export class AiService {
     history.push({ role: 'user', content: userContent });
 
     // Trim history if too long, keeping system message and recent messages
-    const recentHistory = history.length > MAX_HISTORY_LENGTH
-      ? history.slice(-MAX_HISTORY_LENGTH)
-      : history;
+    const recentHistory =
+      history.length > MAX_HISTORY_LENGTH ? history.slice(-MAX_HISTORY_LENGTH) : history;
 
     const messages: AiChatMessage[] = [systemMessage, ...recentHistory];
 
-    logger.info(
-      { auditId: dto.auditId, userId, messageCount: messages.length },
-      'AI chat request',
-    );
+    logger.info({ auditId: dto.auditId, userId, messageCount: messages.length }, 'AI chat request');
 
     try {
       const response = await this.aiEngine.chat(messages);
@@ -121,10 +131,7 @@ export class AiService {
         citations,
       };
     } catch (error) {
-      logger.error(
-        { error, auditId: dto.auditId, userId },
-        'AI chat request failed',
-      );
+      logger.error({ error, auditId: dto.auditId, userId }, 'AI chat request failed');
       throw new InternalServerErrorException(
         'AI service is temporarily unavailable. Please try again later.',
       );
@@ -178,9 +185,10 @@ export class AiService {
       {} as Record<string, number>,
     );
 
-    const scoreLine = audit.securityScore !== null
-      ? `Security Score: ${audit.securityScore}/100`
-      : 'Security Score: Not yet scored';
+    const scoreLine =
+      audit.securityScore !== null
+        ? `Security Score: ${audit.securityScore}/100`
+        : 'Security Score: Not yet scored';
 
     let prompt = `You are Veridion, an expert smart contract security assistant. You help developers understand and fix vulnerabilities in their smart contracts.
 
@@ -239,7 +247,7 @@ ${finding.codeSnippet ? `- Code:\n\`\`\`solidity\n${finding.codeSnippet}\n\`\`\`
     let match: RegExpExecArray | null;
 
     while ((match = citationRegex.exec(content)) !== null) {
-      const ref = match[1]!.trim();
+      const ref = (match[1] ?? '').trim();
 
       // Try to match by UUID first
       const findingById = findingMap.get(ref);
@@ -255,9 +263,7 @@ ${finding.codeSnippet ? `- Code:\n\`\`\`solidity\n${finding.codeSnippet}\n\`\`\`
       }
 
       // Try to match by title
-      const findingByTitle = findings.find(
-        (f) => f.title.toLowerCase() === ref.toLowerCase(),
-      );
+      const findingByTitle = findings.find((f) => f.title.toLowerCase() === ref.toLowerCase());
       if (findingByTitle) {
         if (!citations.some((c) => c.findingId === findingByTitle.id)) {
           citations.push({
