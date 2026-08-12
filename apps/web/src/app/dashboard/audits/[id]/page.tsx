@@ -67,11 +67,8 @@ export default function AuditDetailPage() {
     setLoading(true);
     setError(null);
     try {
-      const json = await apiGet<{ success: boolean; data: AuditData }>(`/api/v1/audits/${auditId}`);
-      if (!json.success || !json.data) {
-        throw new Error('Failed to load audit');
-      }
-      setAudit(json.data);
+      const json = await apiGet<AuditData>(`/api/v1/audits/${auditId}`);
+      setAudit(json);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load audit');
     } finally {

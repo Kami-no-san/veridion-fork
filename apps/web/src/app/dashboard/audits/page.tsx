@@ -19,18 +19,15 @@ interface AuditItem {
   };
 }
 
-interface ApiResponse {
-  success: boolean;
-  data: {
-    data: AuditItem[];
-    meta: {
-      total: number;
-      page: number;
-      limit: number;
-      totalPages: number;
-      hasNextPage: boolean;
-      hasPreviousPage: boolean;
-    };
+interface AuditsResponse {
+  data: AuditItem[];
+  meta: {
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+    hasNextPage: boolean;
+    hasPreviousPage: boolean;
   };
 }
 
@@ -63,10 +60,8 @@ export default function AuditsPage() {
         const params = new URLSearchParams({ limit: '50', sortOrder: 'desc' });
         if (statusFilter) params.set('status', statusFilter);
 
-        const json = await apiGet<ApiResponse>(`/api/v1/audits?${params.toString()}`);
-        if (json.success && json.data) {
-          setAudits(json.data.data);
-        }
+        const json = await apiGet<AuditsResponse>(`/api/v1/audits?${params.toString()}`);
+        setAudits(json.data);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to load audits');
       } finally {
