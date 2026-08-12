@@ -1,11 +1,6 @@
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000/api/v1';
 const ACCESS_TOKEN_KEY = 'veridion_access_token';
 
-export interface ApiError {
-export function storeAccessToken(token: string): void {
-  if (typeof window !== 'undefined') window.localStorage.setItem(ACCESS_TOKEN_KEY, token);
-}
-
 interface ApiErrorPayload {
   message?: string | string[];
 }
@@ -33,7 +28,7 @@ function getAccessToken(): string | null {
   return window.localStorage.getItem(ACCESS_TOKEN_KEY);
 }
 
-function getErrorMessage(payload: ApiError): string {
+function getErrorMessage(payload: ApiErrorPayload): string {
   if (Array.isArray(payload.message)) return payload.message.join(', ');
   return payload.message ?? 'Request failed';
 }
@@ -48,12 +43,12 @@ export async function apiFetch<T>(path: string, options: RequestInit = {}): Prom
     ...options,
     headers,
   });
-  const payload = (await response.json().catch(() => null)) as T | ApiError | null;
+  const payload = (await response.json().catch(() => null)) as T | ApiErrorPayload | null;
 
   if (!response.ok) {
     throw new ApiRequestError(
       payload && typeof payload === 'object'
-        ? getErrorMessage(payload as ApiError)
+        ? getErrorMessage(payload as ApiErrorPayload)
         : 'Request failed',
       response.status,
     );
@@ -140,24 +135,6 @@ export function updateProject(id: string, input: Partial<ProjectInput>): Promise
 
 export function deleteProject(id: string): Promise<{ message: string }> {
   return apiFetch<{ message: string }>(`/projects/${id}`, { method: 'DELETE' });
-}
-async function apiFetch<T>(path: string, options: RequestInit = {}): Promise<T> {
-  const headers = new Headers(options.headers);
-  const token = getAccessToken();
-  headers.set('Content-Type', 'application/json');
-  if (token) headers.set('Authorization', `Bearer ${token}`);
-
-  const response = await fetch(`${API_URL}${path}`, { ...options, headers });
-  const payload = (await response.json().catch(() => null)) as T | ApiErrorPayload | null;
-  if (!response.ok) {
-    const message =
-      payload && typeof payload === 'object' ? (payload as ApiErrorPayload).message : undefined;
-    throw new ApiRequestError(
-      Array.isArray(message) ? message.join(', ') : (message ?? 'Request failed'),
-      response.status,
-    );
-  }
-  return payload as T;
 }
 
 export type ReportFormat = 'JSON' | 'MARKDOWN' | 'HTML' | 'PDF';

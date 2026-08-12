@@ -27,26 +27,6 @@ export default function LoginPage() {
         body: JSON.stringify({ email, password }),
       });
       storeAccessToken(response.accessToken);
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000/api/v1'}/auth/login`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email, password }),
-        },
-      );
-      const payload = (await response.json()) as {
-        accessToken?: string;
-        message?: string | string[];
-      };
-      if (!response.ok || !payload.accessToken) {
-        throw new Error(
-          Array.isArray(payload.message)
-            ? payload.message.join(', ')
-            : (payload.message ?? 'Unable to sign in'),
-        );
-      }
-      storeAccessToken(payload.accessToken);
       toast.success('Welcome back!');
       router.push('/dashboard');
     } catch (error) {
