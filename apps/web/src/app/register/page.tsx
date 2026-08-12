@@ -6,6 +6,8 @@ import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { toast } from 'sonner';
 
+import { storeAccessToken } from '@/lib/api-client';
+
 export default function RegisterPage() {
   const router = useRouter();
   const [showPassword, setShowPassword] = useState(false);
@@ -16,8 +18,8 @@ export default function RegisterPage() {
     setLoading(true);
 
     const formData = new FormData(e.currentTarget);
-    const _displayName = formData.get('displayName') as string;
-    const _email = formData.get('email') as string;
+    const displayName = formData.get('displayName') as string;
+    const email = formData.get('email') as string;
     const password = formData.get('password') as string;
 
     if (!/[A-Z]/.test(password) || !/[a-z]/.test(password) || !/[0-9]/.test(password)) {
@@ -26,11 +28,34 @@ export default function RegisterPage() {
       return;
     }
 
-    // TODO: Replace with actual API call
-    await new Promise((r) => setTimeout(r, 800));
-    toast.success('Account created successfully!');
-    router.push('/dashboard');
-    setLoading(false);
+    try {
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000/api/v1'}/auth/register`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ displayName, email, password }),
+        },
+      );
+      const payload = (await response.json()) as {
+        accessToken?: string;
+        message?: string | string[];
+      };
+      if (!response.ok || !payload.accessToken) {
+        throw new Error(
+          Array.isArray(payload.message)
+            ? payload.message.join(', ')
+            : (payload.message ?? 'Unable to create account'),
+        );
+      }
+      storeAccessToken(payload.accessToken);
+      toast.success('Account created successfully!');
+      router.push('/dashboard');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Unable to create account');
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
