@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Post, Query, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
@@ -29,5 +29,15 @@ export class AuditsController {
   @ApiOperation({ summary: 'Get audit by ID with findings' })
   findOne(@Param('id') id: string, @CurrentUser('id') userId: string) {
     return this.auditsService.findOne(id, userId);
+  }
+
+  @Patch('findings/:id')
+  @ApiOperation({ summary: 'Update finding status' })
+  updateFindingStatus(
+    @Param('id') id: string,
+    @Body() body: { status: string },
+    @CurrentUser('id') userId: string,
+  ) {
+    return this.auditsService.updateFindingStatus(id, body.status, userId);
   }
 }
