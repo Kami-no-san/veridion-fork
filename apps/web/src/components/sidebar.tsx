@@ -7,6 +7,7 @@ import {
   FileText,
   FolderOpen,
   LayoutDashboard,
+  LogOut,
   MessageSquare,
   Settings,
   Shield,
@@ -15,6 +16,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useState } from 'react';
 
+import { useAuth } from '@/lib/auth';
 import { cn } from '@/lib/utils';
 
 const navigation = [
@@ -29,6 +31,7 @@ const navigation = [
 export function Sidebar() {
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
+  const { user, logout } = useAuth();
 
   return (
     <aside
@@ -37,6 +40,7 @@ export function Sidebar() {
         collapsed ? 'w-16' : 'w-64',
       )}
     >
+      {/* Logo */}
       <div className="flex h-14 items-center justify-between border-b px-4">
         {!collapsed && (
           <Link href="/dashboard" className="flex items-center gap-2 font-bold">
@@ -45,11 +49,16 @@ export function Sidebar() {
           </Link>
         )}
         {collapsed && <Shield className="text-primary mx-auto h-6 w-6" />}
-        <button onClick={() => setCollapsed(!collapsed)} className="hover:bg-muted rounded-md p-1">
+        <button
+          onClick={() => setCollapsed(!collapsed)}
+          className="hover:bg-muted rounded-md p-1"
+          aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+        >
           <ChevronLeft className={cn('h-4 w-4 transition-transform', collapsed && 'rotate-180')} />
         </button>
       </div>
 
+      {/* Navigation */}
       <nav className="flex-1 space-y-1 p-2">
         {navigation.map((item) => {
           const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
@@ -73,6 +82,7 @@ export function Sidebar() {
         })}
       </nav>
 
+      {/* Bottom section: notifications + user */}
       <div className="space-y-1 border-t p-2">
         <Link
           href="/dashboard/notifications"
@@ -84,6 +94,36 @@ export function Sidebar() {
           <Bell className="h-5 w-5 shrink-0" />
           {!collapsed && <span>Notifications</span>}
         </Link>
+
+        {/* User info and logout */}
+        {user && (
+          <div
+            className={cn(
+              'flex items-center gap-3 rounded-lg px-3 py-2',
+              collapsed && 'justify-center px-2',
+            )}
+          >
+            <div className="bg-primary/10 text-primary flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm font-medium">
+              {user.displayName?.charAt(0) ?? user.email.charAt(0).toUpperCase()}
+            </div>
+            {!collapsed && (
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-medium">{user.displayName ?? user.email}</p>
+                <p className="text-muted-foreground truncate text-xs">{user.email}</p>
+              </div>
+            )}
+            <button
+              onClick={() => {
+                void logout();
+              }}
+              className="text-muted-foreground hover:text-destructive shrink-0 rounded-md p-1 transition-colors"
+              title="Log out"
+              aria-label="Log out"
+            >
+              <LogOut className="h-4 w-4" />
+            </button>
+          </div>
+        )}
       </div>
     </aside>
   );
