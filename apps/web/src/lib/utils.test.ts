@@ -1,6 +1,10 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { cn, formatAddress, severityColor } from './utils';
+import { cn, formatAddress, formatRelativeTime, severityColor } from './utils';
+
+afterEach(() => {
+  vi.useRealTimers();
+});
 
 describe('cn', () => {
   it('should merge class names', () => {
@@ -23,6 +27,20 @@ describe('formatAddress', () => {
     const result = formatAddress('GABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890');
     expect(result).toContain('...');
     expect(result.length).toBeLessThan(44);
+  });
+});
+
+describe('formatRelativeTime', () => {
+  it('formats recent dates relative to the current time', () => {
+    vi.setSystemTime(new Date('2026-08-12T12:00:00.000Z'));
+
+    expect(formatRelativeTime('2026-08-12T10:00:00.000Z')).toBe('2 hours ago');
+    expect(formatRelativeTime('2026-08-12T12:00:00.000Z')).toBe('just now');
+    expect(formatRelativeTime('2026-08-12T13:00:00.000Z', { short: true })).toBe('1h from now');
+  });
+
+  it('handles invalid dates', () => {
+    expect(formatRelativeTime('not-a-date')).toBe('Unknown time');
   });
 });
 
