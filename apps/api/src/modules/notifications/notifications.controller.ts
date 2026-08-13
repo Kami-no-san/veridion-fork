@@ -1,4 +1,4 @@
-import { Controller, Get, Param, Put, UseGuards } from '@nestjs/common';
+import { Controller, Get, Param, Patch, Put, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
@@ -18,6 +18,7 @@ export class NotificationsController {
     return this.notificationsService.findAll(userId);
   }
 
+  @Patch(':id/read')
   @Put(':id/read')
   @ApiOperation({ summary: 'Mark notification as read' })
   markRead(@Param('id') id: string, @CurrentUser('id') userId: string) {
