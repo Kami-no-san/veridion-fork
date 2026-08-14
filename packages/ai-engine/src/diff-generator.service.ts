@@ -29,10 +29,7 @@ export class DiffGeneratorService {
         'Running sandbox compilation check',
       );
 
-      const compileResult = await this.runSandboxCompileCheck(
-        request.fixedCode,
-        request.language,
-      );
+      const compileResult = await this.runSandboxCompileCheck(request.fixedCode, request.language);
 
       if (!compileResult.success) {
         logger.warn(
@@ -47,10 +44,7 @@ export class DiffGeneratorService {
         return this.generateRevisedDiff(request, compileResult.errors);
       }
 
-      logger.info(
-        { filePath: request.filePath },
-        'Compilation check passed',
-      );
+      logger.info({ filePath: request.filePath }, 'Compilation check passed');
     }
 
     return diffResponse;
@@ -88,7 +82,8 @@ Output ONLY valid JSON (no markdown fences) with these exact fields:
       const response = await this.aiProvider.chat([
         {
           role: 'system',
-          content: 'You are a senior developer expert in git diff generation and patch creation. You produce syntactically correct unified diffs that can be applied with git apply.',
+          content:
+            'You are a senior developer expert in git diff generation and patch creation. You produce syntactically correct unified diffs that can be applied with git apply.',
         },
         {
           role: 'user',
@@ -114,7 +109,9 @@ Output ONLY valid JSON (no markdown fences) with these exact fields:
       return result;
     } catch (error) {
       logger.error({ error, filePath: request.filePath }, 'Failed to generate AI diff');
-      throw new Error(`Failed to generate diff: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      throw new Error(
+        `Failed to generate diff: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      );
     }
   }
 
@@ -156,7 +153,8 @@ Output ONLY valid JSON (no markdown fences) with these exact fields:
       const response = await this.aiProvider.chat([
         {
           role: 'system',
-          content: 'You are a senior developer expert in fixing compilation errors and generating valid git diffs.',
+          content:
+            'You are a senior developer expert in fixing compilation errors and generating valid git diffs.',
         },
         {
           role: 'user',
@@ -174,11 +172,16 @@ Output ONLY valid JSON (no markdown fences) with these exact fields:
       return JSON.parse(jsonString) as AiDiffResponse;
     } catch (error) {
       logger.error({ error, filePath: request.filePath }, 'Failed to generate revised diff');
-      throw new Error(`Failed to generate revised diff: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      throw new Error(
+        `Failed to generate revised diff: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      );
     }
   }
 
-  private async runSandboxCompileCheck(code: string, language: string): Promise<CompileCheckResult> {
+  private async runSandboxCompileCheck(
+    code: string,
+    language: string,
+  ): Promise<CompileCheckResult> {
     const tempDir = `temp_compile_${Date.now()}`;
     const fileName = this.getFileNameForLanguage(language);
 
@@ -241,7 +244,9 @@ Output ONLY valid JSON (no markdown fences) with these exact fields:
     return commands[language.toLowerCase()] || `echo "No compile check for ${language}"`;
   }
 
-  private async executeCommand(command: string): Promise<{ exitCode: number; stdout: string; stderr: string }> {
+  private async executeCommand(
+    command: string,
+  ): Promise<{ exitCode: number; stdout: string; stderr: string }> {
     return new Promise((resolve) => {
       exec(command, (error, stdout, stderr) => {
         resolve({

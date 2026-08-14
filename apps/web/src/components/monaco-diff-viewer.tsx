@@ -69,30 +69,20 @@ export function MonacoDiffViewer({
     <Card className="w-full">
       <CardHeader>
         <div className="flex items-center justify-between">
-          <CardTitle className="text-lg font-semibold">
-            Code Diff Viewer - {fileName}
-          </CardTitle>
+          <CardTitle className="text-lg font-semibold">Code Diff Viewer - {fileName}</CardTitle>
           <div className="flex gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setShowDiff(!showDiff)}
-            >
+            <Button variant="outline" size="sm" onClick={() => setShowDiff(!showDiff)}>
               {showDiff ? 'Show Side-by-Side' : 'Show Diff'}
             </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleDownload}
-            >
-              <Download className="h-4 w-4 mr-2" />
+            <Button variant="outline" size="sm" onClick={handleDownload}>
+              <Download className="mr-2 h-4 w-4" />
               Download
             </Button>
           </div>
         </div>
       </CardHeader>
       <CardContent>
-        <div className="border rounded-lg overflow-hidden">
+        <div className="overflow-hidden rounded-lg border">
           {showDiff ? (
             <DiffEditor
               height="500px"
@@ -115,9 +105,7 @@ export function MonacoDiffViewer({
           ) : (
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <div className="bg-muted px-4 py-2 text-sm font-medium border-b">
-                  Original
-                </div>
+                <div className="bg-muted border-b px-4 py-2 text-sm font-medium">Original</div>
                 <Editor
                   height="500px"
                   language={language}
@@ -134,9 +122,7 @@ export function MonacoDiffViewer({
                 />
               </div>
               <div>
-                <div className="bg-muted px-4 py-2 text-sm font-medium border-b">
-                  Modified
-                </div>
+                <div className="bg-muted border-b px-4 py-2 text-sm font-medium">Modified</div>
                 <Editor
                   height="500px"
                   language={language}
@@ -158,20 +144,12 @@ export function MonacoDiffViewer({
         </div>
 
         {!readOnly && (
-          <div className="flex gap-3 mt-4 justify-end">
-            <Button
-              variant="outline"
-              onClick={onReject}
-              className="flex items-center gap-2"
-            >
+          <div className="mt-4 flex justify-end gap-3">
+            <Button variant="outline" onClick={onReject} className="flex items-center gap-2">
               <X className="h-4 w-4" />
               Reject Changes
             </Button>
-            <Button
-              onClick={onAccept}
-              className="flex items-center gap-2"
-              disabled={!isModified}
-            >
+            <Button onClick={onAccept} className="flex items-center gap-2" disabled={!isModified}>
               <Check className="h-4 w-4" />
               Accept Changes
             </Button>
