@@ -1,11 +1,15 @@
 'use client';
 
+import { DiffEditor, Editor } from '@monaco-editor/react';
+import { Check, Download, X } from 'lucide-react';
+import type * as MonacoNamespace from 'monaco-editor/esm/vs/editor/editor.api';
 import * as React from 'react';
-import { useEffect, useRef, useState } from 'react';
-import { DiffEditor, Editor, Monaco } from '@monaco-editor/react';
+import { useState } from 'react';
+
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Check, X, Download } from 'lucide-react';
+
+type Monaco = typeof MonacoNamespace;
 
 interface MonacoDiffViewerProps {
   originalCode: string;
@@ -29,7 +33,7 @@ export function MonacoDiffViewer({
   const [isModified, setIsModified] = useState(false);
   const [showDiff, setShowDiff] = useState(true);
 
-  const handleEditorDidMount = (editor: any, monaco: any) => {
+  const configureTheme = (monaco: Monaco) => {
     // Configure Monaco editor
     monaco.editor.defineTheme('veridion-dark', {
       base: 'vs-dark',
@@ -49,6 +53,20 @@ export function MonacoDiffViewer({
       },
     });
     monaco.editor.setTheme('veridion-dark');
+  };
+
+  const handleEditorDidMount = (
+    editor: MonacoNamespace.editor.IStandaloneCodeEditor,
+    monaco: Monaco,
+  ) => {
+    configureTheme(monaco);
+  };
+
+  const handleDiffEditorDidMount = (
+    editor: MonacoNamespace.editor.IStandaloneDiffEditor,
+    monaco: Monaco,
+  ) => {
+    configureTheme(monaco);
   };
 
   const handleEditorChange = (value: string | undefined) => {
@@ -90,6 +108,7 @@ export function MonacoDiffViewer({
               original={originalCode}
               modified={modifiedCode}
               theme="veridion-dark"
+              onMount={handleDiffEditorDidMount}
               options={{
                 readOnly,
                 renderSideBySide: true,
@@ -111,6 +130,7 @@ export function MonacoDiffViewer({
                   language={language}
                   value={originalCode}
                   theme="veridion-dark"
+                  onMount={handleEditorDidMount}
                   options={{
                     readOnly: true,
                     minimap: { enabled: true },
@@ -129,6 +149,7 @@ export function MonacoDiffViewer({
                   value={modifiedCode}
                   theme="veridion-dark"
                   onChange={handleEditorChange}
+                  onMount={handleEditorDidMount}
                   options={{
                     readOnly,
                     minimap: { enabled: true },

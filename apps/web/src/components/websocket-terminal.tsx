@@ -1,9 +1,9 @@
 'use client';
 
+import { Play, Terminal } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
+
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Terminal, Play, Pause, X } from 'lucide-react';
 
 interface LogEntry {
   timestamp: string;
@@ -42,7 +42,7 @@ export function WebSocketTerminal({ auditId, onComplete }: WebSocketTerminalProp
     };
 
     ws.onmessage = (event) => {
-      const data = JSON.parse(event.data) as LogEntry;
+      const data = JSON.parse(event.data as string) as LogEntry;
       setLogs((prev) => [...prev, data]);
       setCurrentStage(data.stage);
 

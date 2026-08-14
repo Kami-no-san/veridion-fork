@@ -8,8 +8,8 @@
   "scripts": {
     "build": "tsc && shx cp -r src/generated dist/generated",
     "typecheck": "tsc --noEmit",
-    "lint": "eslint src/ --ignore-pattern 'src/generated/**' --max-warnings 0",
-    "lint:fix": "eslint src/ --ignore-pattern 'src/generated/**' --fix",
+    "lint": "eslint src/ --max-warnings 0",
+    "lint:fix": "eslint src/ --fix",
     "test": "vitest run",
     "test:watch": "vitest",
     "clean": "rm -rf dist",

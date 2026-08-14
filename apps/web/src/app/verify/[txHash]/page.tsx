@@ -1,7 +1,8 @@
+import { AlertCircle, CheckCircle, Clock, Shield, XCircle } from 'lucide-react';
 import { notFound } from 'next/navigation';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+
 import { Badge } from '@/components/ui/badge';
-import { Shield, CheckCircle, AlertCircle, Clock, XCircle } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 interface VerificationData {
   txHash: string;
@@ -18,7 +19,7 @@ interface VerificationData {
   }>;
 }
 
-async function getVerificationData(txHash: string): Promise<VerificationData | null> {
+function getVerificationData(txHash: string): VerificationData | null {
   // In production, this would fetch from the blockchain or API
   // For now, return mock data
   if (txHash.length < 10) return null;
@@ -40,8 +41,8 @@ async function getVerificationData(txHash: string): Promise<VerificationData | n
   };
 }
 
-export default async function VerificationExplorerPage({ params }: { params: { txHash: string } }) {
-  const verification = await getVerificationData(params.txHash);
+export default function VerificationExplorerPage({ params }: { params: { txHash: string } }) {
+  const verification = getVerificationData(params.txHash);
 
   if (!verification) {
     notFound();
