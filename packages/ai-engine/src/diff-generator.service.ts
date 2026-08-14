@@ -1,6 +1,7 @@
-import { exec } from 'child_process';
 import { logger } from '@veridion/logger';
 import type { AiDiffRequest, AiDiffResponse } from '@veridion/shared';
+import { exec } from 'child_process';
+
 import type { AiProviderExtended } from './ai.service';
 
 export interface CompileCheckResult {
@@ -284,14 +285,14 @@ Output ONLY valid JSON (no markdown fences) with these exact fields:
     return warnings;
   }
 
-  private isErrorLine(line: string, language: string): boolean {
+  private isErrorLine(line: string, _language: string): boolean {
     const lowerLine = line.toLowerCase();
     const errorIndicators = ['error', 'failed', 'cannot', 'undefined', 'expected'];
 
     return errorIndicators.some((indicator) => lowerLine.includes(indicator));
   }
 
-  private isWarningLine(line: string, language: string): boolean {
+  private isWarningLine(line: string, _language: string): boolean {
     const lowerLine = line.toLowerCase();
     return lowerLine.includes('warning');
   }
