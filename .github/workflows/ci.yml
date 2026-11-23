@@ -105,3 +105,31 @@ jobs:
       - run: pnpm build
         env:
           NODE_ENV: production
+
+  contracts:
+    name: Contracts (${{ matrix.contract }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        contract: [audit-registry, project-registry, verifier]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32v1-none
+          components: clippy
+      - name: Cache Rust build artifacts
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: contracts/${{ matrix.contract }} -> target
+      - name: Build contract (wasm32v1-none)
+        working-directory: contracts/${{ matrix.contract }}
+        run: cargo build --release --target wasm32v1-none --locked
+      - name: Run contract tests
+        working-directory: contracts/${{ matrix.contract }}
+        run: cargo test --locked
+      - name: Lint contract
+        working-directory: contracts/${{ matrix.contract }}
+        run: cargo clippy --all-targets --locked

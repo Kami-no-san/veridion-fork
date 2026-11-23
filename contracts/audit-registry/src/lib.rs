@@ -1,5 +1,5 @@
 #![no_std]
-use soroban_sdk::{contract, contractimpl, contracttype, symbol_short, Env, String, Symbol, Address, Map, Vec};
+use soroban_sdk::{contract, contractimpl, contracttype, symbol_short, Env, String, Address, Map, Vec};
 
 /// Audit record stored on-chain
 #[contracttype]
@@ -49,6 +49,10 @@ impl AuditRegistry {
         if audits.contains_key(audit_id.clone()) {
             panic!("Audit already registered");
         }
+
+        // Record the audit id so future calls can detect duplicates.
+        audits.set(audit_id.clone(), audit_id.clone());
+        storage.set(&audit_key, &audits);
 
         let record = AuditRecord {
             audit_id: audit_id.clone(),

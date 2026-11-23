@@ -47,7 +47,6 @@ packages/database/src/generated/
 
 # Rust / Soroban
 contracts/*/target/
-contracts/*/Cargo.lock
 
 # Docker
 .docker/
@@ -55,3 +54,4 @@ contracts/*/Cargo.lock
 # Misc
 *.pem
 .tmp/
+contracts/*/test_snapshots/

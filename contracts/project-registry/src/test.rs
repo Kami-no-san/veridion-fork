@@ -7,6 +7,7 @@ use soroban_sdk::{Address, Env, String};
 #[test]
 fn test_register_and_get_project() {
     let env = Env::default();
+    env.mock_all_auths();
     let contract_id = env.register_contract(None, ProjectRegistry);
     let client = ProjectRegistryClient::new(&env, &contract_id);
     let owner = Address::generate(&env);
