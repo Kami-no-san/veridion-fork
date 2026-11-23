@@ -1,5 +1,5 @@
 #![no_std]
-use soroban_sdk::{contract, contractimpl, contracttype, symbol_short, Env, String, Address, BytesN, Map, Vec};
+use soroban_sdk::{contract, contractimpl, contracttype, symbol_short, Env, String, Address, BytesN, Map, Symbol, Vec};
 
 /// Verification status states
 #[contracttype]
@@ -94,7 +94,7 @@ impl Verifier {
             .get(&auditors_key)
             .unwrap_or_else(|| Vec::new(&env));
         
-        let is_authorized = auditors.iter().any(|a| a == &verifier);
+        let is_authorized = auditors.iter().any(|a| a == verifier);
         if !is_authorized {
             panic!("Verifier is not authorized");
         }
@@ -112,7 +112,7 @@ impl Verifier {
         let record = if let Some(existing) = verifications.get(audit_id.clone()) {
             // Add signature if not already signed
             let mut signatures = existing.signatures;
-            if !signatures.iter().any(|s| s == &verifier) {
+            if !signatures.iter().any(|s| s == verifier) {
                 signatures.push_back(verifier.clone());
             }
 
@@ -139,11 +139,17 @@ impl Verifier {
             let mut signatures = Vec::new(&env);
             signatures.push_back(verifier.clone());
 
+            let status = if signatures.len() >= threshold {
+                VerificationStatus::Verified
+            } else {
+                VerificationStatus::Pending
+            };
+
             VerificationRecord {
                 audit_id: audit_id.clone(),
                 target_contract,
                 report_hash,
-                status: VerificationStatus::Pending,
+                status,
                 security_score,
                 signatures,
                 threshold,
@@ -157,7 +163,7 @@ impl Verifier {
 
         // Publish event
         env.events().publish(
-            (symbol_short!("verification"), audit_id.clone()),
+            (Symbol::new(&env, "verification"), audit_id.clone()),
             record.clone(),
         );
 
@@ -320,7 +326,7 @@ impl Verifier {
         let valid_until = timestamp + 31536000; // 1 year validity
 
         let badge = SecurityBadge {
-            contract_address,
+            contract_address: contract_address.clone(),
             badge_level,
             security_score: record.security_score,
             issued_at: timestamp,
@@ -333,12 +339,12 @@ impl Verifier {
         let mut badges: Map<Address, SecurityBadge> = storage
             .get(&badge_key)
             .unwrap_or_else(|| Map::new(&env));
-        badges.set(contract_address, badge.clone());
+        badges.set(contract_address.clone(), badge.clone());
         storage.set(&badge_key, &badges);
 
         // Publish badge event
         env.events().publish(
-            (symbol_short!("badge_issued"), contract_address),
+            (Symbol::new(&env, "badge_issued"), contract_address),
             badge.clone(),
         );
 
@@ -381,7 +387,7 @@ impl Verifier {
 
     /// Verify data integrity using a hash comparison
     pub fn verify_hash(
-        env: Env,
+        _env: Env,
         provided_hash: BytesN<32>,
         expected_hash: BytesN<32>,
     ) -> bool {

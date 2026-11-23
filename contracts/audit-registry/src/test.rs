@@ -1,20 +1,21 @@
 #![cfg(test)]
 
 use super::*;
-use soroban_sdk::testutils::{Address as _, Ledger};
+use soroban_sdk::testutils::Address as _;
 use soroban_sdk::{Address, Env, String};
 
-fn setup_test() -> (Env, Address, AuditRegistryClient) {
+fn setup_test() -> (Env, Address, Address) {
     let env = Env::default();
+    env.mock_all_auths();
     let contract_id = env.register_contract(None, AuditRegistry);
-    let client = AuditRegistryClient::new(&env, &contract_id);
     let auditor = Address::generate(&env);
-    (env, auditor, client)
+    (env, auditor, contract_id)
 }
 
 #[test]
 fn test_register_and_get_audit() {
-    let (env, auditor, client) = setup_test();
+    let (env, auditor, contract_id) = setup_test();
+    let client = AuditRegistryClient::new(&env, &contract_id);
 
     let audit_id = String::from_str(&env, "audit-001");
     let project_id = String::from_str(&env, "proj-001");
@@ -30,7 +31,7 @@ fn test_register_and_get_audit() {
         &project_name,
         &contract_hash,
         &report_hash,
-        85u32,
+        &85u32,
         &version,
     );
 
@@ -46,7 +47,8 @@ fn test_register_and_get_audit() {
 
 #[test]
 fn test_verify_audit() {
-    let (env, auditor, client) = setup_test();
+    let (env, auditor, contract_id) = setup_test();
+    let client = AuditRegistryClient::new(&env, &contract_id);
 
     let audit_id = String::from_str(&env, "audit-001");
 
@@ -58,7 +60,7 @@ fn test_verify_audit() {
         &String::from_str(&env, "Test"),
         &String::from_str(&env, "hash1"),
         &String::from_str(&env, "hash2"),
-        90,
+        &90u32,
         &String::from_str(&env, "1.0.0"),
     );
 
@@ -70,21 +72,30 @@ fn test_verify_audit() {
 #[test]
 #[should_panic(expected = "Audit already registered")]
 fn test_duplicate_audit_panics() {
-    let (env, auditor, client) = setup_test();
+    let (env, auditor, contract_id) = setup_test();
+    let client = AuditRegistryClient::new(&env, &contract_id);
 
     let audit_id = String::from_str(&env, "audit-001");
 
     client.register_audit(
-        &auditor, &audit_id,
-        &String::from_str(&env, "proj"), &String::from_str(&env, "Test"),
-        &String::from_str(&env, "h1"), &String::from_str(&env, "h2"),
-        80, &String::from_str(&env, "1.0.0"),
+        &auditor,
+        &audit_id,
+        &String::from_str(&env, "proj"),
+        &String::from_str(&env, "Test"),
+        &String::from_str(&env, "h1"),
+        &String::from_str(&env, "h2"),
+        &80u32,
+        &String::from_str(&env, "1.0.0"),
     );
 
     client.register_audit(
-        &auditor, &audit_id,
-        &String::from_str(&env, "proj2"), &String::from_str(&env, "Test2"),
-        &String::from_str(&env, "h3"), &String::from_str(&env, "h4"),
-        80, &String::from_str(&env, "1.0.0"),
+        &auditor,
+        &audit_id,
+        &String::from_str(&env, "proj2"),
+        &String::from_str(&env, "Test2"),
+        &String::from_str(&env, "h3"),
+        &String::from_str(&env, "h4"),
+        &80u32,
+        &String::from_str(&env, "1.0.0"),
     );
 }
