@@ -854,6 +854,28 @@ importers:
         specifier: ^1.6.0
         version: 1.6.1(@types/node@20.19.43)(jsdom@24.1.3)(terser@5.50.0)
 
+  plugins/storage-pointer:
+    dependencies:
+      '@veridion/logger':
+        specifier: workspace:*
+        version: link:../../packages/logger
+      '@veridion/scanner-types':
+        specifier: workspace:*
+        version: link:../../packages/scanner-types
+      '@veridion/shared':
+        specifier: workspace:*
+        version: link:../../packages/shared
+    devDependencies:
+      '@veridion/tsconfig':
+        specifier: workspace:*
+        version: link:../../packages/config/tsconfig
+      typescript:
+        specifier: ^5.4.5
+        version: 5.9.3
+      vitest:
+        specifier: ^1.6.0
+        version: 1.6.1(@types/node@20.19.43)(jsdom@24.1.3)(terser@5.50.0)
+
 packages:
 
   '@alloc/quick-lru@5.2.0':
@@ -5653,6 +5675,7 @@ packages:
 
   node-abort-controller@3.1.1:
     resolution: {integrity: sha512-AGK2yQKIjRuqnc6VkX2Xj5d+QW8xZ87pa1UK6yA6ouUyuxfHuMP6umE5QK7UmTeOAymo+Zx1Fxiuw9rVx8taHQ==}
+    deprecated: This package is no longer needed on supported Node.js versions. Node.js 16+ includes AbortController and AbortSignal as built-in globals. All Node.js versions requiring this polyfill are end-of-life. Use the built-in globals instead.
 
   node-emoji@1.11.0:
     resolution: {integrity: sha512-wo2DpQkQp7Sjm2A0cq+sN7EHKO6Sl0ctXeBdFZrL9T9+UywORbufTcTZxom8YqpLQt/FqNMUkOpkZrJVYSKD3A==}
